@@ -1,0 +1,1896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pillcounted — Know your medication, not just its name</title>
+<meta name="description" content="Pillcounted identifies a pill from a photo, keeps doses on track, compares what it will cost, and flags recall and shortage records — with your records kept on your device.">
+<style>
+  :root{
+    --ink:#0a0a0b;
+    --ink-soft:#26262b;
+    --muted:#6b7280;
+    --muted-2:#9aa0a6;
+    --line:#e9e9ec;
+    --line-2:#d9d9de;
+    --bg:#ffffff;
+    --surface:#fafafb;
+    --accent:#0b6e4f;
+    --accent-deep:#07372a;
+    --accent-soft:#eff6f2;
+    --amber:#b45309;
+    --red:#dc2626;
+    --r:14px;
+    --r-sm:10px;
+    --maxw:1080px;
+    --shadow:0 1px 2px rgba(10,10,11,.04),0 8px 24px rgba(10,10,11,.05);
+    --shadow-lg:0 1px 2px rgba(10,10,11,.05),0 24px 60px rgba(10,10,11,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);font-size:16px;line-height:1.55;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    font-feature-settings:"kern" 1,"liga" 1,"cv11" 1;overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none}
+  svg{display:block}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+  @media(max-width:640px){.wrap{padding:0 20px}}
+
+  /* ---------- type ---------- */
+  h1{font-size:clamp(2.3rem,4.6vw,3.55rem);line-height:1.02;letter-spacing:-.045em;font-weight:730}
+  h2{font-size:clamp(1.65rem,2.9vw,2.3rem);line-height:1.1;letter-spacing:-.038em;font-weight:715}
+  h3{font-size:1.03rem;letter-spacing:-.015em;font-weight:640}
+  .eyebrow{display:inline-block;font-size:.715rem;font-weight:640;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .lead{color:var(--muted);font-size:1.05rem;line-height:1.62;letter-spacing:-.005em}
+  .accent{color:#3f8a66}
+
+  /* ---------- buttons ---------- */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 20px;border-radius:var(--r-sm);border:1px solid transparent;font-size:.95rem;font-weight:600;letter-spacing:-.01em;cursor:pointer;transition:background .16s ease,border-color .16s ease,color .16s ease,transform .16s ease,box-shadow .16s ease;white-space:nowrap}
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:0 1px 2px rgba(7,55,42,.2)}
+  .btn-primary:hover{background:var(--accent-deep);transform:translateY(-1px)}
+  .btn-secondary{background:#fff;border-color:var(--line-2);color:var(--ink)}
+  .btn-secondary:hover{border-color:var(--ink);}
+  .btn-ghost{background:transparent;color:var(--ink);border-color:transparent;padding:0 12px}
+  .btn-ghost:hover{color:var(--accent)}
+
+  /* ---------- nav ---------- */
+  header{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.86);backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:24px;height:64px}
+  .brand{display:flex;align-items:center;gap:10px;font-size:1.06rem;font-weight:700;letter-spacing:-.03em}
+  .brand .glyph{width:28px;height:28px;border-radius:8px;background:var(--ink);display:grid;place-items:center;color:#fff}
+  .brand b{font-weight:700}
+  .brand span{color:var(--muted);font-weight:520}
+  .nav-links{display:flex;gap:22px;font-size:.9rem;font-weight:520;color:var(--muted)}
+  .nav-links a{transition:color .15s ease}
+  .nav-links a:hover{color:var(--ink)}
+  .nav-actions{display:flex;align-items:center;gap:6px}
+  .nav-actions .btn{height:40px;font-size:.9rem}
+  @media(max-width:920px){.nav-links{display:none}}
+  @media(max-width:560px){.nav-actions .btn-ghost{display:none}}
+
+  /* ---------- reveal ---------- */
+  .r{opacity:0;transform:translateY(14px);transition:opacity .55s cubic-bezier(.22,.61,.36,1),transform .55s cubic-bezier(.22,.61,.36,1)}
+  .r.in{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){.r{opacity:1;transform:none;transition:none}}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;padding:64px 0 52px;border-bottom:1px solid var(--line)}
+  .hero::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 78% -10%,var(--accent-soft),transparent 55%);pointer-events:none}
+  .hero-grid{position:relative;display:grid;grid-template-columns:1.02fr .98fr;gap:72px;align-items:center}
+  .hero h1{margin:22px 0 22px}
+  .hero .lead{max-width:42ch}
+  .hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:32px}
+  .meta-row{display:flex;gap:22px;flex-wrap:wrap;margin-top:34px;padding-top:24px;border-top:1px solid var(--line)}
+  .meta{display:flex;align-items:center;gap:8px;font-size:.83rem;color:var(--muted);font-weight:520}
+  .meta svg{color:var(--accent);flex:0 0 auto}
+  @media(max-width:940px){.hero{padding:56px 0 48px}.hero-grid{grid-template-columns:1fr;gap:52px}}
+
+  /* phone */
+  .stage{position:relative;display:grid;place-items:center;padding:58px 34px}
+  .stage::before{content:"";position:absolute;inset:0;border-radius:30px;border:1px solid var(--line);background:url("img/hero-mesh.png") center/cover no-repeat}
+  .device{position:relative;z-index:2;width:296px;margin:0 auto}
+  .device .body{background:#0a0a0b;border-radius:38px;padding:10px;box-shadow:var(--shadow-lg)}
+  .device .screen{background:#fff;border-radius:29px;overflow:hidden;min-height:566px;display:flex;flex-direction:column;border:1px solid rgba(0,0,0,.05)}
+  .d-head{padding:20px 18px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+  .d-head .t{font-weight:660;font-size:.95rem;letter-spacing:-.02em}
+  .d-head .n{width:26px;height:26px;border-radius:50%;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent)}
+  .d-body{padding:14px;display:flex;flex-direction:column;gap:10px}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+  .panel.soft{background:var(--surface)}
+  .v-label{font-size:.66rem;font-weight:660;letter-spacing:.13em;text-transform:uppercase;color:var(--muted-2);margin:2px 2px 4px}
+  .pill-line{display:flex;align-items:center;gap:13px}
+  .pill{width:52px;height:52px;border-radius:50%;background:linear-gradient(160deg,#fbfbfc,#eef0f1);display:grid;place-items:center;font-size:.58rem;font-weight:730;letter-spacing:.07em;color:#7b8085;border:1px solid var(--line-2);box-shadow:inset 0 -2px 4px rgba(0,0,0,.06),inset 0 2px 4px rgba(255,255,255,.9)}
+  .pill-line .txt strong{display:block;font-size:.93rem;letter-spacing:-.015em}
+  .pill-line .txt span{font-size:.76rem;color:var(--muted)}
+  .tag{display:inline-flex;align-items:center;gap:5px;font-size:.68rem;font-weight:620;border-radius:6px;padding:3px 7px;margin-top:6px;letter-spacing:-.005em}
+  .tag.ok{background:var(--accent-soft);color:var(--accent)}
+  .tag.warn{background:#fdf6e7;color:var(--amber)}
+  .kv{display:flex;justify-content:space-between;align-items:baseline;font-size:.83rem;padding:8px 0;border-top:1px solid var(--line)}
+  .kv:first-child{border-top:0}
+  .kv b{font-weight:640;letter-spacing:-.01em}
+  .dose{display:flex;align-items:center;gap:10px;font-size:.85rem;padding:7px 0}
+  .dose .b{width:19px;height:19px;border-radius:50%;border:1.5px solid var(--line-2);display:grid;place-items:center;flex:0 0 auto}
+  .dose.on .b{background:var(--accent);border-color:var(--accent);color:#fff}
+  .badge-float{position:absolute;background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px 13px;box-shadow:var(--shadow);font-size:.78rem;font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
+  .badge-float .bi{width:26px;height:26px;border-radius:7px;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent)}
+  .badge-float.a{left:-34px;top:-16px}
+  .badge-float.b{right:-28px;bottom:-14px}
+  @media(max-width:1080px){.badge-float.a{left:-10px}.badge-float.b{right:-10px}}
+  @media(max-width:520px){.badge-float{display:none}}
+
+  /* ---------- section frame ---------- */
+  section{padding:60px 0}
+  .band-surface{background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .head{max-width:640px;margin-bottom:34px}
+  .head h2{margin:18px 0 16px}
+  .head.center{margin-left:auto;margin-right:auto;text-align:center}
+  .rule{height:1px;background:var(--line);margin:0 0 44px}
+
+  /* ---------- sources ---------- */
+  .sources{padding:0}
+  .sources-row{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;border-top:1px solid var(--line)}
+  .sources-row .s{flex:1 1 200px;padding:22px 24px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:3px}
+  .sources-row .s:last-child{border-right:0}
+  @media(max-width:760px){.sources-row .s{flex:1 1 50%;border-bottom:1px solid var(--line)}}
+  .sources-row .s b{font-size:.9rem;letter-spacing:-.015em}
+  .sources-row .s span{font-size:.78rem;color:var(--muted)}
+  .sources-cap{padding:20px 0;font-size:.72rem;font-weight:620;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2)}
+
+  /* ---------- features ---------- */
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--line)}
+  .grid3 .f{padding:26px 30px 26px 0;border-bottom:1px solid var(--line);border-right:1px solid var(--line)}
+  .grid3 .f:nth-child(3n){border-right:0;padding-right:0}
+  .grid3 .f:nth-child(3n+2){padding-left:30px}
+  .grid3 .f:nth-child(3n){padding-left:30px}
+  .grid3 .f:nth-child(3n+1){padding-left:0}
+  @media(max-width:880px){
+    .grid3{grid-template-columns:1fr 1fr}
+    .grid3 .f:nth-child(3n){border-right:1px solid var(--line);padding-right:30px}
+    .grid3 .f:nth-child(2n){border-right:0;padding-right:0}
+    .grid3 .f:nth-child(2n+1){padding-left:0}
+    .grid3 .f:nth-child(2n){padding-left:30px}
+  }
+  @media(max-width:560px){
+    .grid3{grid-template-columns:1fr}
+    .grid3 .f,.grid3 .f:nth-child(2n),.grid3 .f:nth-child(2n+1),.grid3 .f:nth-child(3n),.grid3 .f:nth-child(3n+1),.grid3 .f:nth-child(3n+2){border-right:0;padding-left:0;padding-right:0}
+  }
+  .f .ic{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);display:grid;place-items:center;color:var(--ink);margin-bottom:18px;background:#fff}
+  .f h3{margin-bottom:9px}
+  .f p{color:var(--muted);font-size:.92rem;line-height:1.6}
+  .f .fine{margin-top:12px;font-size:.76rem;color:var(--muted-2)}
+
+  /* ---------- zig ---------- */
+  .zig{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+  .zig.rev .copy{order:2}
+  .zig.rev .visual{order:1}
+  @media(max-width:940px){.zig{grid-template-columns:1fr;gap:40px}.zig.rev .copy{order:1}.zig.rev .visual{order:2}}
+  .zig h2{margin:18px 0 18px}
+  .zig .lead{margin-bottom:26px}
+  .list{list-style:none;display:flex;flex-direction:column;gap:15px}
+  .list li{display:flex;gap:12px;font-size:.94rem;align-items:flex-start}
+  .list .tick{width:20px;height:20px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:0 0 auto;margin-top:2px}
+  .demo{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:var(--shadow)}
+  .demo .dh{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+  .demo .dh b{font-size:.92rem;letter-spacing:-.015em}
+  .demo .dh span{font-size:.7rem;font-weight:620;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2)}
+
+  /* ---------- table ---------- */
+  .table{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r)}
+  table{width:100%;border-collapse:collapse;min-width:640px}
+  th,td{padding:17px 24px;text-align:left;font-size:.92rem;border-bottom:1px solid var(--line)}
+  thead th{background:var(--surface);font-size:.7rem;font-weight:660;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  thead th.c{color:var(--accent)}
+  tbody tr:last-child td{border-bottom:0}
+  td.c{background:var(--accent-soft)}
+  .yes{color:var(--accent);font-weight:640}
+  .dim{color:var(--muted)}
+
+  /* ---------- dark ---------- */
+  .dark{background:linear-gradient(rgba(4,12,9,.76),rgba(4,12,9,.76)),url("img/dark-mesh.png") center/cover no-repeat;color:#f2f2f3;border-top:1px solid #17171a}
+  .dark .eyebrow{color:#8fbfa9}
+  .dark .lead{color:#a1a1aa}
+  .dark h2{color:#fff}
+  .dark .p-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
+  @media(max-width:940px){.dark .p-grid{grid-template-columns:1fr;gap:40px}}
+  .dark .item{display:flex;gap:15px;padding:19px 0;border-top:1px solid #1c1c20}
+  .dark .item:first-of-type{border-top:0}
+  .dark .item .tick{width:22px;height:22px;border-radius:50%;background:rgba(143,191,169,.14);color:#8fbfa9;display:grid;place-items:center;flex:0 0 auto;margin-top:1px}
+  .dark .item strong{display:block;font-size:.96rem;letter-spacing:-.015em;color:#fff}
+  .dark .item span{color:#a1a1aa;font-size:.9rem}
+  .statcard{border:1px solid #1c1c20;border-radius:18px;padding:26px;background:#0e0e10}
+  .statcard .sh{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+  .statcard .sh .g{width:44px;height:44px;border-radius:11px;background:var(--accent);display:grid;place-items:center;color:#fff}
+  .statcard .sh b{display:block;font-size:1rem;color:#fff;letter-spacing:-.015em}
+  .statcard .sh span{color:#a1a1aa;font-size:.84rem}
+  .statcard .ln{display:flex;justify-content:space-between;padding:13px 0;border-top:1px solid #1c1c20;font-size:.9rem;color:#d4d4d8}
+  .statcard .ln:first-of-type{border-top:0}
+  .statcard .ln b{color:#8fbfa9;font-weight:640}
+
+  /* ---------- faq ---------- */
+  .faq{border-top:1px solid var(--line)}
+  details{border-bottom:1px solid var(--line)}
+  details summary{cursor:pointer;list-style:none;padding:24px 0;font-size:1rem;font-weight:600;letter-spacing:-.018em;display:flex;justify-content:space-between;gap:20px;align-items:center}
+  details summary::-webkit-details-marker{display:none}
+  details summary::after{content:"";width:11px;height:11px;border-right:1.6px solid var(--muted);border-bottom:1.6px solid var(--muted);transform:rotate(45deg);transition:transform .2s ease;flex:0 0 auto;margin-right:4px}
+  details[open] summary::after{transform:rotate(-135deg)}
+  details p{color:var(--muted);padding:0 0 26px;font-size:.94rem;max-width:70ch;line-height:1.66}
+
+  /* ---------- cta ---------- */
+  .cta{text-align:center}
+  #cta{background:url("img/soft-mesh.png") center/cover no-repeat}
+  .cta h2{margin:18px 0 16px}
+  .cta .lead{max-width:50ch;margin:0 auto 32px}
+  .cta-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+  /* ---------- price ---------- */
+  .price-wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:72px;align-items:center}
+  @media(max-width:940px){.price-wrap{grid-template-columns:1fr;gap:40px}}
+  .pricecard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px;box-shadow:var(--shadow)}
+  .pricecard .pr{display:flex;justify-content:space-between;align-items:baseline;padding:15px 0;border-top:1px solid var(--line)}
+  .pricecard .pr:first-child{border-top:0}
+  .pricecard .pr .w{font-weight:620;font-size:.93rem;letter-spacing:-.015em}
+  .pricecard .pr .w small{display:block;font-weight:450;color:var(--muted);font-size:.78rem}
+  .pricecard .pr .a{font-weight:700;color:var(--accent);font-size:1.08rem;letter-spacing:-.02em}
+  .pricecard .pp{padding-top:14px;margin-top:6px;border-top:1px solid var(--line);font-size:.78rem;color:var(--muted-2)}
+
+  /* ---------- alerts ---------- */
+  .alerts{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:760px){.alerts{grid-template-columns:1fr}}
+  .alert{border:1px solid var(--line);border-radius:var(--r);padding:26px;background:#fff}
+  .alert .bar{width:26px;height:3px;border-radius:3px;margin-bottom:18px}
+  .alert.r .bar{background:var(--red)}
+  .alert.s .bar{background:#d97706}
+  .alert h3{margin-bottom:8px}
+  .alert p{color:var(--muted);font-size:.92rem}
+  .alert .hl{color:var(--ink);font-weight:600}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--line);padding:48px 0 32px;background:#fff}
+  .fgrid{display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr;gap:40px;padding-bottom:44px}
+  @media(max-width:820px){.fgrid{grid-template-columns:1fr 1fr;gap:30px}}
+  @media(max-width:520px){.fgrid{grid-template-columns:1fr}}
+  footer h4{font-size:.71rem;font-weight:660;letter-spacing:.13em;text-transform:uppercase;color:var(--muted-2);margin-bottom:16px}
+  footer a{display:block;padding:5px 0;color:var(--muted);font-size:.9rem;transition:color .15s ease}
+  footer a:hover{color:var(--ink)}
+  .legal{border-top:1px solid var(--line);padding-top:26px;font-size:.78rem;line-height:1.72;color:var(--muted-2);max-width:92ch}
+  .copybar{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:24px;font-size:.8rem;color:var(--muted-2)}
+
+  /* ================= UPGRADE LAYER ================= */
+
+  /* --- animated brand mark (looping "gif") --- */
+  .brand .glyph{background:linear-gradient(150deg,#0b6e4f,#07372a);overflow:hidden;position:relative;box-shadow:0 1px 2px rgba(7,55,42,.28)}
+  .mark-drop{animation:markDrop 2.6s cubic-bezier(.45,.05,.35,1) infinite}
+  .mark-drop.d2{animation-delay:.55s}
+  .mark-drop.d3{animation-delay:1.1s}
+  .mark-ring{transform-origin:12px 12px;animation:markSpin 2.6s linear infinite}
+  .mark-count{font:700 7px/1 -apple-system,system-ui,sans-serif;fill:#fff;opacity:.92}
+  @keyframes markDrop{
+    0%{transform:translateY(-9px);opacity:0}
+    18%{opacity:1}
+    46%{transform:translateY(0);opacity:1}
+    72%{transform:translateY(0);opacity:1}
+    86%{transform:translateY(2px);opacity:0}
+    100%{transform:translateY(-9px);opacity:0}
+  }
+  @keyframes markSpin{to{transform:rotate(360deg)}}
+  .brand-live{display:inline-flex;align-items:center;gap:5px;margin-left:8px;font-size:.6rem;font-weight:660;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:3px 8px}
+  .brand-live i{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:blip 1.6s ease-in-out infinite}
+  @keyframes blip{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+  @media(max-width:700px){.brand-live{display:none}}
+  @media(prefers-reduced-motion:reduce){.mark-drop,.mark-ring,.brand-live i{animation:none}}
+
+  /* --- realistic pill renderings --- */
+  .rx{position:relative;border-radius:50%;border:1px solid rgba(10,10,11,.08);display:grid;place-items:center;flex:0 0 auto;
+      font:730 .55rem/1 -apple-system,system-ui,sans-serif;letter-spacing:.06em;color:#8a9096;
+      box-shadow:inset 0 -3px 6px rgba(0,0,0,.10),inset 0 3px 5px rgba(255,255,255,.95),0 3px 8px rgba(10,10,11,.13)}
+  .rx::after{content:"";position:absolute;inset:0;border-radius:inherit;
+      background:linear-gradient(125deg,rgba(255,255,255,.85) 0 26%,rgba(255,255,255,0) 52%);pointer-events:none}
+  .rx-oval{width:62px;height:40px;border-radius:22px;background:linear-gradient(160deg,#fdfdfe,#e6e8ea)}
+  .rx-round{width:46px;height:46px;background:linear-gradient(160deg,#fffdf2,#f0e6bd);color:#8a7a3f}
+  .rx-round.blue{background:linear-gradient(160deg,#f4f8ff,#cfdcf3);color:#61708d}
+  .rx-round.pink{background:linear-gradient(160deg,#fff5f7,#f4cdd6);color:#9c6b78}
+  .rx-cap{width:64px;height:26px;border-radius:14px;overflow:hidden;color:#fff;
+      background:linear-gradient(90deg,#2f6fd0 0 50%,#e9edf2 50% 100%);text-shadow:0 1px 1px rgba(0,0,0,.25)}
+  .rx-worn{width:46px;height:46px;background:linear-gradient(160deg,#f6f6f7,#dfe0e2);color:#b9bcbf;filter:blur(.2px)}
+
+  /* --- interactive lab shell --- */
+  .lab{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow-lg);overflow:hidden}
+  .lab-top{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .lab-top .dots{display:flex;gap:5px}
+  .lab-top .dots i{width:9px;height:9px;border-radius:50%;background:var(--line-2)}
+  .lab-top b{font-size:.82rem;letter-spacing:-.01em;font-weight:640}
+  .lab-top .chip{margin-left:auto;font-size:.66rem;font-weight:660;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:4px 10px}
+  .lab-body{padding:22px}
+  .try-hint{display:inline-flex;align-items:center;gap:7px;font-size:.74rem;font-weight:620;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:5px 11px;margin-bottom:14px}
+  .try-hint svg{animation:nudge 1.8s ease-in-out infinite}
+  @keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
+  @media(prefers-reduced-motion:reduce){.try-hint svg{animation:none}}
+
+  /* --- scanner --- */
+  .scan-tray{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+  .scan-opt{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;
+      padding:14px 12px 11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:9px;
+      min-width:96px;flex:1 1 96px;transition:border-color .18s,transform .18s,box-shadow .18s,background .18s}
+  .scan-opt:hover{transform:translateY(-2px);box-shadow:var(--shadow);background:#fff}
+  .scan-opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 3px rgba(11,110,79,.10)}
+  .scan-opt small{font-size:.7rem;color:var(--muted);font-weight:560;letter-spacing:-.01em;text-align:center}
+  .viewfinder{position:relative;height:186px;border-radius:16px;overflow:hidden;display:grid;place-items:center;
+      background:radial-gradient(120% 120% at 50% 20%,#22262b,#0c0e10);border:1px solid #16181b}
+  .viewfinder .grain{position:absolute;inset:0;opacity:.35;
+      background:radial-gradient(circle at 22% 30%,rgba(255,255,255,.10),transparent 45%),radial-gradient(circle at 78% 74%,rgba(255,255,255,.07),transparent 40%)}
+  .vf-frame{position:absolute;width:150px;height:110px;border-radius:14px;box-shadow:0 0 0 9999px rgba(8,10,12,.42)}
+  .vf-frame span{position:absolute;width:18px;height:18px;border:2px solid rgba(255,255,255,.85);border-radius:3px}
+  .vf-frame span:nth-child(1){top:-1px;left:-1px;border-right:0;border-bottom:0;border-top-left-radius:8px}
+  .vf-frame span:nth-child(2){top:-1px;right:-1px;border-left:0;border-bottom:0;border-top-right-radius:8px}
+  .vf-frame span:nth-child(3){bottom:-1px;left:-1px;border-right:0;border-top:0;border-bottom-left-radius:8px}
+  .vf-frame span:nth-child(4){bottom:-1px;right:-1px;border-left:0;border-top:0;border-bottom-right-radius:8px}
+  .vf-subject{position:relative;z-index:3;transform:scale(1.25);transition:transform .3s ease}
+  .scanning .vf-subject{transform:scale(1.32)}
+  .vf-line{position:absolute;left:50%;top:0;width:150px;height:2px;margin-left:-75px;z-index:4;opacity:0;
+      background:linear-gradient(90deg,transparent,#4ade9f,transparent);box-shadow:0 0 14px 2px rgba(74,222,159,.55)}
+  .scanning .vf-line{animation:sweep 1.05s ease-in-out infinite;opacity:1}
+  @keyframes sweep{0%{top:34%}50%{top:66%}100%{top:34%}}
+  .vf-status{position:absolute;bottom:12px;z-index:5;font-size:.72rem;font-weight:620;letter-spacing:.02em;color:#d9f5e8;
+      background:rgba(8,12,10,.62);border:1px solid rgba(255,255,255,.13);border-radius:999px;padding:5px 12px;backdrop-filter:blur(6px)}
+  .result{margin-top:16px;min-height:150px}
+  .idle{display:flex;gap:11px;align-items:flex-start;border:1px dashed var(--line-2);border-radius:12px;padding:16px;background:var(--surface);color:var(--muted);font-size:.85rem;line-height:1.55}
+  .idle svg{color:var(--muted-2);flex:0 0 auto;margin-top:2px}
+  .result-card{opacity:0;transform:translateY(8px);transition:opacity .35s ease,transform .35s ease}
+  .result-card.show{opacity:1;transform:none}
+  .rc-head{display:flex;gap:14px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:6px}
+  .rc-head .t strong{display:block;font-size:1.02rem;letter-spacing:-.02em}
+  .rc-head .t span{display:block;font-size:.8rem;color:var(--muted)}
+  .conf{margin-top:12px}
+  .conf-bar{height:6px;border-radius:6px;background:var(--line);overflow:hidden}
+  .conf-bar i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,var(--accent),#3fa981);transition:width .8s cubic-bezier(.22,.61,.36,1)}
+  .conf-bar.warnbar i{background:linear-gradient(90deg,#b45309,#d99a3d)}
+  .conf-meta{display:flex;justify-content:space-between;font-size:.74rem;color:var(--muted);margin-top:7px;font-weight:560}
+  .src{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;color:var(--muted);margin-top:14px;
+      border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--surface)}
+
+  /* --- tracker --- */
+  .track-lab{display:block}
+  .track-side{display:flex;align-items:center;gap:22px;margin-top:16px;padding-top:18px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .track-side .ringwrap{padding:0}
+  .track-side .ring{width:104px;height:104px}
+  .track-side .ring svg{width:104px;height:104px}
+  .track-side .col{flex:1;min-width:150px}
+  .track-side .week{justify-content:flex-start}
+  .track-side .streak-note{text-align:left;margin-top:10px}
+
+  .dose-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#fff;border:1px solid var(--line);
+      border-radius:12px;padding:12px 14px;margin-bottom:9px;cursor:pointer;font:inherit;transition:border-color .18s,background .18s,transform .18s}
+  .dose-row:hover{border-color:var(--line-2);transform:translateX(2px)}
+  .dose-row .box{width:22px;height:22px;border-radius:7px;border:1.6px solid var(--line-2);display:grid;place-items:center;color:transparent;flex:0 0 auto;transition:.2s}
+  .dose-row[aria-pressed="true"]{background:var(--accent-soft);border-color:rgba(11,110,79,.28)}
+  .dose-row[aria-pressed="true"] .box{background:var(--accent);border-color:var(--accent);color:#fff}
+  .dose-row .rx{font-size:0;border-radius:50%}
+  .dose-row .nm{flex:1;min-width:0}
+  .dose-row .nm b{display:block;font-size:.9rem;font-weight:620;letter-spacing:-.015em}
+  .dose-row .nm span{font-size:.76rem;color:var(--muted)}
+  .dose-row[aria-pressed="true"] .nm b{text-decoration:line-through;text-decoration-color:rgba(11,110,79,.45)}
+  .ringwrap{display:grid;place-items:center;padding:8px 0 16px}
+  .ring{position:relative;width:132px;height:132px}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .tr{stroke:var(--line)}
+  .ring .pg{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .7s cubic-bezier(.22,.61,.36,1)}
+  .ring .lbl{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+  .ring .lbl b{display:block;font-size:1.45rem;font-weight:720;letter-spacing:-.04em;line-height:1}
+  .ring .lbl span{font-size:.68rem;font-weight:640;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2)}
+  .week{display:flex;gap:6px;justify-content:center;margin-top:4px}
+  .week i{width:26px;height:34px;border-radius:8px;background:var(--accent-soft);display:grid;place-items:center;
+      font:640 .62rem/34px -apple-system,system-ui,sans-serif;color:var(--accent);font-style:normal}
+  .week i.off{background:var(--surface);color:var(--muted-2);border:1px solid var(--line)}
+  .week i.today{box-shadow:0 0 0 2px var(--accent)}
+  .streak-note{text-align:center;font-size:.8rem;color:var(--muted);margin-top:12px;min-height:20px;transition:color .2s}
+  .streak-note b{color:var(--accent)}
+
+  /* --- price explorer --- */
+  .seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+  .seg button{border:0;background:transparent;font:600 .82rem/1 inherit;color:var(--muted);padding:8px 14px;border-radius:8px;cursor:pointer;transition:.18s}
+  .seg button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:var(--shadow)}
+  .ctrl-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:22px}
+  .ctrl-row label{font-size:.7rem;font-weight:660;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2);display:block;margin-bottom:7px}
+  select.sel{appearance:none;background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.4'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 12px center;
+      border:1px solid var(--line-2);border-radius:10px;padding:10px 36px 10px 13px;font:600 .86rem/1 inherit;color:var(--ink);cursor:pointer}
+  .bars{display:flex;flex-direction:column;gap:14px}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 86px;gap:14px;align-items:center}
+  @media(max-width:560px){.bar-row{grid-template-columns:110px 1fr 72px;gap:10px}}
+  .bar-row .who b{display:block;font-size:.86rem;font-weight:620;letter-spacing:-.015em}
+  .bar-row .who span{font-size:.72rem;color:var(--muted)}
+  .bar-track{height:34px;border-radius:9px;background:var(--surface);border:1px solid var(--line);overflow:hidden}
+  .bar-fill{height:100%;width:0;border-radius:8px;background:linear-gradient(90deg,#cfd6da,#b6bec4);transition:width .75s cubic-bezier(.22,.61,.36,1)}
+  .bar-row.best .bar-fill{background:linear-gradient(90deg,var(--accent),#3fa981)}
+  .bar-row.best .who b{color:var(--accent)}
+  .bar-row .amt{text-align:right;font-weight:700;font-size:1rem;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .bar-row.best .amt{color:var(--accent)}
+  .save-note{margin-top:20px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:baseline}
+  .save-note .big{font-size:1.5rem;font-weight:730;letter-spacing:-.035em;color:var(--accent);font-variant-numeric:tabular-nums}
+  .save-note small{color:var(--muted-2);font-size:.74rem;max-width:44ch;display:block}
+
+  /* --- recall checker --- */
+  .check-form{display:flex;gap:10px;flex-wrap:wrap}
+  .check-form input{flex:1 1 240px;height:46px;border:1px solid var(--line-2);border-radius:10px;padding:0 14px;font:500 .93rem/1 inherit;color:var(--ink);background:#fff}
+  .check-form input:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px rgba(11,110,79,.12)}
+  .chip-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+  .chip-row button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font:560 .78rem/1 inherit;color:var(--muted);cursor:pointer;transition:.18s}
+  .chip-row button:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .verdict{margin-top:18px;border:1px solid var(--line);border-radius:14px;padding:18px;background:var(--surface);
+      opacity:0;transform:translateY(8px);transition:.35s}
+  .verdict.show{opacity:1;transform:none}
+  .verdict .vh{display:flex;align-items:center;gap:11px;margin-bottom:8px}
+  .verdict .vi{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto}
+  .verdict.ok .vi{background:var(--accent-soft);color:var(--accent)}
+  .verdict.warn .vi{background:#fdf6e7;color:var(--amber)}
+  .verdict.bad .vi{background:#fdeaea;color:var(--red)}
+  .verdict .vh b{font-size:.98rem;letter-spacing:-.02em}
+  .verdict p{font-size:.87rem;color:var(--muted);line-height:1.6}
+  .verdict .meta{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+  .verdict .meta span{font-size:.7rem;font-weight:620;background:#fff;border:1px solid var(--line);border-radius:7px;padding:4px 9px;color:var(--muted)}
+
+  /* --- gallery / illustration cards --- */
+  .gal{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  @media(max-width:880px){.gal{grid-template-columns:1fr 1fr}}
+  @media(max-width:560px){.gal{grid-template-columns:1fr}}
+  .shot{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#fff;box-shadow:var(--shadow);transition:transform .3s ease,box-shadow .3s ease}
+  .shot:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+  .shot .art{aspect-ratio:4/3;position:relative;overflow:hidden;background:var(--surface)}
+  .shot .art svg{width:100%;height:100%}
+  .shot .cap{padding:16px 18px 20px;border-top:1px solid var(--line)}
+  .shot .cap b{display:block;font-size:.93rem;letter-spacing:-.018em;margin-bottom:5px}
+  .shot .cap span{font-size:.83rem;color:var(--muted);line-height:1.55}
+
+  /* --- steps --- */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  @media(max-width:760px){.steps{grid-template-columns:1fr}}
+  .step{padding:24px 26px;border-right:1px solid var(--line);position:relative}
+  .steps .step:last-child{border-right:0}
+  @media(max-width:760px){.step{border-right:0;border-bottom:1px solid var(--line)}.steps .step:last-child{border-bottom:0}}
+  .step .no{font-size:.7rem;font-weight:700;letter-spacing:.14em;color:var(--accent);margin-bottom:14px;display:block}
+  .step b{display:block;font-size:1rem;letter-spacing:-.02em;margin-bottom:7px}
+  .step p{font-size:.89rem;color:var(--muted);line-height:1.58}
+
+  /* --- hero phone tabs --- */
+  .hero-tabs{display:flex;gap:6px;justify-content:center;margin-top:18px;position:relative;z-index:3}
+  .hero-tabs button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;font:600 .76rem/1 inherit;color:var(--muted);cursor:pointer;transition:.18s;box-shadow:var(--shadow)}
+  .hero-tabs button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .d-scene{display:none;flex-direction:column;gap:10px;animation:fadeUp .4s ease}
+  .d-scene.on{display:flex}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .live-dot{display:inline-flex;align-items:center;gap:6px;font-size:.7rem;font-weight:620;color:var(--accent)}
+  .live-dot i{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blip 1.6s ease-in-out infinite}
+
+  /* --- counters / trust strip --- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  @media(max-width:760px){.stats{grid-template-columns:1fr 1fr}}
+  .stat{padding:22px 22px;border-right:1px solid var(--line)}
+  .stats .stat:last-child{border-right:0}
+  @media(max-width:760px){.stat:nth-child(2n){border-right:0}.stat:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+  .stat b{display:block;font-size:1.85rem;font-weight:730;letter-spacing:-.04em;line-height:1.05;font-variant-numeric:tabular-nums}
+  .stat span{font-size:.82rem;color:var(--muted)}
+
+  /* --- small screens --- */
+  @media(max-width:440px){
+    .lab-body{padding:18px}
+    .lab-top{flex-wrap:wrap;row-gap:6px}
+    .lab-top .chip{margin-left:0}
+    .bar-row{grid-template-columns:1fr auto;grid-template-areas:"who amt" "bar bar";row-gap:9px}
+    .bar-row .who{grid-area:who}
+    .bar-row .amt{grid-area:amt}
+    .bar-row .bar-track{grid-area:bar;height:28px}
+    .scan-opt{min-width:0;flex:1 1 44%}
+    .track-side{gap:16px}
+    .check-form .btn{width:100%}
+  }
+
+  /* --- savings meter --- */
+  .meter{display:grid;grid-template-columns:.85fr 1.15fr;gap:28px;align-items:stretch}
+  @media(max-width:880px){.meter{grid-template-columns:1fr}}
+  .tickers{display:flex;flex-direction:column;gap:20px}
+  .tick{background:#0e0e10;border:1px solid #1c1c20;border-radius:18px;padding:26px;flex:1;display:flex;flex-direction:column;justify-content:center}
+  .tick-label{font-size:.68rem;font-weight:660;letter-spacing:.13em;text-transform:uppercase;color:#8fbfa9}
+  .tick-num{display:block;margin:12px 0 8px;font-size:clamp(2rem,4.4vw,2.9rem);font-weight:730;letter-spacing:-.045em;color:#fff;font-variant-numeric:tabular-nums;line-height:1}
+  .tick-sub{display:flex;align-items:center;gap:7px;font-size:.78rem;color:#a1a1aa}
+  .pulse{width:7px;height:7px;border-radius:50%;background:#4ade9f;box-shadow:0 0 0 0 rgba(74,222,159,.6);animation:pulse 1.9s ease-out infinite;flex:0 0 auto}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(74,222,159,.55)}70%{box-shadow:0 0 0 9px rgba(74,222,159,0)}100%{box-shadow:0 0 0 0 rgba(74,222,159,0)}}
+  @media(prefers-reduced-motion:reduce){.pulse{animation:none}}
+  .calc{background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:var(--shadow)}
+  .calc-row{margin-bottom:22px}
+  .calc-row label{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:.86rem;color:var(--muted);font-weight:560;margin-bottom:11px}
+  .calc-row label b{font-size:1.05rem;color:var(--accent);font-weight:720;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:6px;background:var(--line);outline:0;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#fff;border:2px solid var(--accent);box-shadow:0 2px 8px rgba(10,10,11,.18);cursor:grab}
+  input[type=range]::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.06)}
+  input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#fff;border:2px solid var(--accent);box-shadow:0 2px 8px rgba(10,10,11,.18);cursor:grab}
+  input[type=range]:focus-visible{box-shadow:0 0 0 3px rgba(11,110,79,.15)}
+  .calc-out{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:26px}
+  @media(max-width:520px){.calc-out{grid-template-columns:1fr}}
+  .co{padding:16px 18px;border-right:1px solid var(--line);background:var(--surface)}
+  .calc-out .co:last-child{border-right:0}
+  @media(max-width:520px){.co{border-right:0;border-bottom:1px solid var(--line)}.calc-out .co:last-child{border-bottom:0}}
+  .co span{display:block;font-size:.72rem;color:var(--muted);font-weight:560;margin-bottom:5px}
+  .co b{font-size:1.3rem;font-weight:730;letter-spacing:-.035em;color:var(--ink);font-variant-numeric:tabular-nums}
+  .calc-out .co:first-child b{color:var(--accent)}
+  .calc-bar{height:8px;border-radius:8px;background:var(--surface);border:1px solid var(--line);overflow:hidden;margin-top:18px}
+  .calc-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),#3fa981);transition:width .5s cubic-bezier(.22,.61,.36,1)}
+  .calc-fine{margin-top:16px;font-size:.76rem;line-height:1.6;color:var(--muted-2)}
+
+
+  /* ================= APP PALETTE (from the launch screen: cream ground, sage outline, deep green) ================= */
+  :root{
+    --ink:#15402D; --ink-soft:#1f4a37; --muted:#6E8578; --muted-2:#93a79b;
+    --line:#dfe8e2; --line-2:#c9d9cf;
+    --bg:#F7F4EE; --surface:#fdfcf9;
+    --accent:#164731; --accent-deep:#0f3323; --accent-soft:#e6efe9;
+    --sage:#A9C4B4;
+    --green-mid:#3f8a66;
+  }
+  body{background:var(--bg)}
+  header{background:rgba(247,244,238,.88);border-bottom-color:var(--line)}
+  .btn-secondary{background:#fff}
+  .band-surface{background:#fff}
+  .hero::before{background:radial-gradient(120% 80% at 78% -10%,#e6efe9,transparent 55%)}
+  .stage::before{background:linear-gradient(160deg,#fff,#eef4f0);border-color:var(--line)}
+  .device .body{background:#1a1a1c}
+  .device .screen{background:var(--bg)}
+  .panel{border-color:var(--line)}
+  .lab,.pricecard,.calc,.shot,.alert{border-color:var(--line)}
+  .lab-top{background:#f3f6f3}
+  .demo{background:#fff}
+  .tick{background:#164731;border-color:#1f5a40}
+  .tick-label{color:#A9C4B4}.tick-sub{color:#c9dcd1}.pulse{background:#A9C4B4}
+  .dark{background:linear-gradient(rgba(15,51,35,.9),rgba(15,51,35,.9)),url("img/dark-mesh.png") center/cover no-repeat;border-top-color:#1f5a40}
+  .dark .item{border-top-color:#245b45}.statcard{background:#12392a;border-color:#245b45}.statcard .ln{border-top-color:#245b45}
+  .dark .eyebrow,.statcard .ln b,.dark .item .tick{color:#A9C4B4}
+  footer{background:var(--bg)}
+  #cta{background:linear-gradient(180deg,#fff,#eef4f0)}
+  .table{background:#fff}
+  .stats,.steps{background:#fff;border-left:1px solid var(--line);border-right:1px solid var(--line);border-radius:14px;overflow:hidden}
+
+  /* app-style "capsule" motif used on the page (matches the launch screen) */
+  .cap-mark{display:inline-grid;grid-template-columns:repeat(3,10px);gap:4px 5px;vertical-align:middle}
+  .cap-mark i{width:10px;height:20px;border-radius:6px;border:1.5px solid var(--sage);background:transparent}
+  .cap-mark i.f{background:var(--accent);border-color:var(--accent)}
+
+
+  /* ---------- companion ---------- */
+  .comp-lab{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+  @media(max-width:700px){.comp-lab{grid-template-columns:1fr}}
+  .yard{position:relative;height:240px;border-radius:16px;overflow:hidden;border:1px solid var(--line);
+      background:linear-gradient(180deg,#eaf3ee 0 62%,#cfe2d6 62% 66%,#b9d3c3 66% 100%);image-rendering:pixelated}
+  .yard .sky{position:absolute;inset:0;background:radial-gradient(circle at 80% 18%,rgba(63,214,196,.22),transparent 26%)}
+  .critter{position:absolute;left:50%;bottom:44px;transform:translateX(-50%);image-rendering:pixelated;
+      transition:transform .18s;filter:drop-shadow(0 6px 4px rgba(21,64,45,.18))}
+  .critter img{display:block;height:120px;image-rendering:pixelated}
+  .critter.happy{animation:hop .5s ease}
+  @keyframes hop{0%{transform:translateX(-50%) translateY(0)}40%{transform:translateX(-50%) translateY(-22px) scale(1.06)}100%{transform:translateX(-50%) translateY(0)}}
+  .snack{position:absolute;left:50%;top:-30px;font-size:26px;transform:translateX(-50%);animation:drop .55s cubic-bezier(.5,0,.8,.6) forwards}
+  @keyframes drop{to{top:96px;opacity:0}}
+  .yard .name{position:absolute;left:12px;top:10px;font:700 .72rem/1 inherit;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:rgba(255,255,255,.85);border-radius:8px;padding:6px 9px}
+  .yard .lvl{position:absolute;right:12px;top:10px;font:700 .72rem/1 inherit;color:#fff;background:var(--accent);border-radius:8px;padding:6px 9px}
+  .treats{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+  .treats b{font-size:1.15rem;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .treats span{font-size:.78rem;color:var(--muted)}
+  .lvlbar{height:10px;border-radius:10px;background:#e4ece7;overflow:hidden;border:1px solid var(--line)}
+  .lvlbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),#3f8a66);transition:width .45s cubic-bezier(.22,.61,.36,1)}
+  .lvl-meta{display:flex;justify-content:space-between;font-size:.76rem;color:var(--muted);margin:8px 0 14px;font-weight:560}
+  .comp-note{font-size:.8rem;color:var(--muted);line-height:1.55;margin-top:12px}
+  .comp-note b{color:var(--ink)}
+  .pick{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .pick button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 8px;cursor:pointer;display:flex;align-items:center;gap:7px;font:600 .76rem/1 inherit;color:var(--muted)}
+  .pick button img{height:26px;image-rendering:pixelated}
+  .pick button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .wardrobe{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+  .wardrobe span{font-size:.72rem;font-weight:620;border:1px solid var(--line);border-radius:999px;padding:5px 10px;color:var(--muted-2);background:var(--surface)}
+  .wardrobe span.got{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+  .toast{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);background:var(--accent);color:#fff;font:700 .8rem/1 inherit;padding:8px 12px;border-radius:999px;opacity:0;pointer-events:none;transition:.25s}
+  .toast.on{opacity:1;top:38%}
+
+  /* ---------- interactions ---------- */
+  .ix-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:22px;align-items:start}
+  @media(max-width:760px){.ix-grid{grid-template-columns:1fr}}
+  .ix-group{margin-bottom:14px}
+  .ix-group h4{font-size:.68rem;font-weight:660;letter-spacing:.13em;text-transform:uppercase;color:var(--muted-2);margin-bottom:8px}
+  .ix-chips{display:flex;gap:7px;flex-wrap:wrap}
+  .ix-chips button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font:560 .8rem/1 inherit;color:var(--ink);cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+  .ix-chips button::before{content:"+";font-weight:700;color:var(--muted-2)}
+  .ix-chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .ix-chips button[aria-pressed="true"]::before{content:"✓";color:#fff}
+  .meds{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+  .meds div{display:flex;align-items:center;gap:10px;font-size:.84rem;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+  .meds div b{font-weight:620}
+  .meds div span{color:var(--muted);font-size:.74rem;margin-left:auto}
+  .ix-out{display:flex;flex-direction:column;gap:10px;min-height:120px}
+  .ix-card{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:#fff;display:flex;gap:12px;animation:fadeUp .3s ease}
+  .ix-card .sev{width:10px;border-radius:10px;flex:0 0 auto}
+  .ix-card.note .sev{background:#3f8a66}.ix-card.caution .sev{background:#d99a3d}.ix-card.serious .sev{background:#c0392b}
+  .ix-card b{display:block;font-size:.9rem;letter-spacing:-.015em;margin-bottom:3px}
+  .ix-card p{font-size:.82rem;color:var(--muted);line-height:1.55}
+  .ix-card small{display:block;margin-top:6px;font-size:.7rem;color:var(--muted-2)}
+  .ix-empty{border:1px dashed var(--line-2);border-radius:12px;padding:16px;font-size:.84rem;color:var(--muted);background:var(--surface)}
+
+  /* screenshot slots: if a real app screenshot exists in img/app/, it replaces the mock */
+  .shotslot{display:none;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+  .d-scene.real .shotslot{display:block}
+  .d-scene.real > :not(.shotslot){display:none}
+
+
+  /* ================= ACTUAL APP THEME: dark ground, teal accent (from the App Store screens) ================= */
+  :root{
+    --ink:#f3f6f6; --ink-soft:#dfe6e6; --muted:#9db0ad; --muted-2:#6f8280;
+    --line:#223030; --line-2:#2e3f3e;
+    --bg:#0b1111; --surface:#131a1a;
+    --accent:#3fd6c4; --accent-deep:#2fb9a9; --accent-soft:rgba(63,214,196,.14);
+    --sage:#3fd6c4; --green-mid:#3fd6c4; --amber:#f0b25a; --red:#ff6b6b;
+    --card:#161e1f; --card-2:#1b2526;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+    --shadow-lg:0 1px 2px rgba(0,0,0,.5),0 24px 60px rgba(0,0,0,.55);
+  }
+  body{background:radial-gradient(120% 60% at 50% -10%,#14302c 0%,#0b1111 55%) fixed,var(--bg);color:var(--ink)}
+  header{background:rgba(11,17,17,.82);border-bottom-color:var(--line)}
+  .nav-links{color:var(--muted)}.nav-links a:hover{color:#fff}
+  .btn-primary{background:var(--accent);color:#06201d;box-shadow:0 0 0 1px rgba(63,214,196,.25),0 6px 18px rgba(63,214,196,.22)}
+  .btn-primary:hover{background:#5ee3d3;color:#06201d}
+  .btn-secondary{background:var(--card);border-color:var(--line-2);color:var(--ink)}
+  .btn-secondary:hover{border-color:var(--accent)}
+  .accent,.eyebrow.accent{color:var(--accent)}
+  .eyebrow{color:var(--accent)}
+  .lead{color:var(--muted)}
+  .hero::before{background:radial-gradient(120% 80% at 78% -10%,rgba(63,214,196,.16),transparent 55%)}
+  .hero,.band-surface,section,footer,.faq,details,.rule,.sources-row,.grid3,.grid3 .f,.stats,.steps,.step,.stat,.meta-row{border-color:var(--line)}
+  .band-surface{background:#0e1516}
+  .stage::before{background:linear-gradient(160deg,#152021,#0d1415);border-color:var(--line)}
+  .device .body{background:#2a3233;box-shadow:var(--shadow-lg)}
+  .device .screen{background:#000;border-color:#000}
+  .d-head{border-bottom-color:var(--line)}
+  .panel{background:var(--card);border-color:var(--line)}.panel.soft{background:var(--card-2)}
+  .kv,.dose{border-color:var(--line)}
+  .tag.ok{background:var(--accent-soft);color:var(--accent)}.tag.warn{background:rgba(240,178,90,.16);color:var(--amber)}
+  .badge-float{background:var(--card);border-color:var(--line-2);color:var(--ink)}
+  .badge-float .bi{background:var(--accent-soft);color:var(--accent)}
+  .hero-tabs button{background:var(--card);border-color:var(--line-2);color:var(--muted)}
+  .hero-tabs button[aria-pressed="true"]{background:var(--accent);color:#06201d;border-color:var(--accent)}
+  .f .ic{background:var(--card);border-color:var(--line-2);color:var(--accent)}
+  .f p{color:var(--muted)}
+  .lab,.demo,.pricecard,.calc,.shot,.alert{background:var(--card);border-color:var(--line);box-shadow:var(--shadow)}
+  .lab-top{background:var(--card-2);border-bottom-color:var(--line)}.lab-top .dots i{background:var(--line-2)}
+  .lab-top .chip,.try-hint{background:var(--accent-soft);color:var(--accent)}
+  .scan-opt{background:var(--card-2);border-color:var(--line)}.scan-opt:hover{background:#20302f}
+  .scan-opt[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+  .scan-opt small{color:var(--muted)}
+  .viewfinder{border-color:var(--line-2)}
+  .idle{background:var(--card-2);border-color:var(--line-2);color:var(--muted)}
+  .conf-bar{background:var(--line)}.src{background:var(--card-2);border-color:var(--line);color:var(--muted)}
+  .dose-row{background:var(--card-2);border-color:var(--line);color:var(--ink)}
+  .dose-row[aria-pressed="true"]{background:var(--accent-soft);border-color:rgba(63,214,196,.35)}
+  .dose-row .box{border-color:var(--line-2)}.dose-row[aria-pressed="true"] .box{background:var(--accent);border-color:var(--accent);color:#06201d}
+  .ring .tr{stroke:var(--line)}.ring .pg{stroke:var(--accent)}
+  .week i{background:var(--accent-soft);color:var(--accent)}.week i.off{background:var(--card-2);color:var(--muted-2);border-color:var(--line)}
+  .track-side{border-top-color:var(--line)}
+  .seg{background:var(--card-2);border-color:var(--line)}.seg button{color:var(--muted)}
+  .seg button[aria-pressed="true"]{background:var(--accent);color:#06201d}
+  select.sel{background-color:var(--card-2);border-color:var(--line-2);color:var(--ink)}
+  .bar-track{background:var(--card-2);border-color:var(--line)}
+  .bar-fill{background:linear-gradient(90deg,#2e3f3e,#3b4f4e)}
+  .bar-row.best .bar-fill{background:linear-gradient(90deg,var(--accent),#7cf0e2)}
+  .bar-row .amt{color:#4fc3f7}.bar-row.best .amt,.bar-row.best .who b{color:var(--accent)}
+  .save-note{border-top-color:var(--line)}
+  .check-form input{background:var(--card-2);border-color:var(--line-2);color:var(--ink)}
+  .chip-row button,.ix-chips button,.pick button{background:var(--card-2);border-color:var(--line-2);color:var(--ink)}
+  .ix-chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#06201d}
+  .ix-chips button[aria-pressed="true"]::before{color:#06201d}
+  .pick button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+  .verdict{background:var(--card-2);border-color:var(--line)}
+  .verdict.ok .vi{background:var(--accent-soft);color:var(--accent)}.verdict.warn .vi{background:rgba(240,178,90,.16)}.verdict.bad .vi{background:rgba(255,107,107,.16)}
+  .verdict .meta span{background:var(--card);border-color:var(--line);color:var(--muted)}
+  .meds div{background:var(--card-2);border-color:var(--line)}
+  .ix-card{background:var(--card-2);border-color:var(--line)}.ix-empty{background:var(--card-2);border-color:var(--line-2);color:var(--muted)}
+  .ix-card.note .sev{background:var(--accent)}
+  .yard{border-color:var(--line);background:linear-gradient(180deg,#16302d 0 62%,#1d4640 62% 66%,#173833 66% 100%)}
+  .yard .name{background:rgba(11,17,17,.7);color:var(--accent)}.yard .lvl{background:var(--accent);color:#06201d}
+  .treats{background:var(--card-2);border-color:var(--line)}.lvlbar{background:var(--line);border-color:var(--line-2)}
+  .lvlbar i{background:linear-gradient(90deg,var(--accent),#7cf0e2)}
+  .wardrobe span{background:var(--card-2);border-color:var(--line);color:var(--muted-2)}
+  .wardrobe span.got{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+  .toast{background:var(--accent);color:#06201d}
+  .comp-note b{color:var(--ink)}
+  .tick{background:var(--card);border-color:var(--line)}.tick-label{color:var(--accent)}
+  .calc-row label{color:var(--muted)}.calc-row label b{color:var(--accent)}
+  input[type=range]{background:var(--line)}
+  input[type=range]::-webkit-slider-thumb{background:var(--card);border-color:var(--accent)}
+  .calc-out{border-color:var(--line)}.co{background:var(--card-2);border-color:var(--line)}.co b{color:var(--ink)}
+  .calc-bar{background:var(--card-2);border-color:var(--line)}.calc-bar i{background:linear-gradient(90deg,var(--accent),#7cf0e2)}
+  .table{background:var(--card)}thead th{background:var(--card-2);color:var(--muted)}thead th.c{color:var(--accent)}
+  th,td{border-bottom-color:var(--line)}td.c{background:var(--accent-soft)}.yes{color:var(--accent)}
+  .dark{background:linear-gradient(rgba(11,17,17,.86),rgba(11,17,17,.86)),url("img/dark-mesh.png") center/cover no-repeat;border-top-color:var(--line)}
+  .dark .item{border-top-color:var(--line)}.statcard{background:var(--card);border-color:var(--line)}.statcard .ln{border-top-color:var(--line)}
+  .statcard .sh .g{background:var(--accent);color:#06201d}
+  .dark .eyebrow,.statcard .ln b,.dark .item .tick{color:var(--accent)}
+  details summary::after{border-color:var(--muted)}
+  #cta{background:radial-gradient(80% 100% at 50% 0%,rgba(63,214,196,.14),transparent 70%),#0e1516}
+  footer{background:var(--bg)}footer a{color:var(--muted)}footer a:hover{color:#fff}
+  .legal,.copybar{border-top-color:var(--line)}
+  .stats,.steps{background:var(--card)}
+  .shot .art{background:#000}
+  .rx{border-color:rgba(255,255,255,.12)}
+  /* real screenshots */
+  .screens{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  @media(max-width:760px){.screens{grid-template-columns:1fr}}
+  .screens figure{margin:0;border:1px solid var(--line);border-radius:22px;overflow:hidden;background:#000;box-shadow:var(--shadow-lg);transition:transform .3s}
+  .screens figure:hover{transform:translateY(-4px)}
+  .screens img{display:block;width:100%;height:auto}
+  .screens figcaption{padding:14px 16px;font-size:.84rem;color:var(--muted);border-top:1px solid var(--line);background:var(--card)}
+  .screens figcaption b{color:var(--ink);display:block;margin-bottom:3px}
+
+
+  /* ---------- brand animation: bottle tips onto its side, pills tumble out and spell the name ---------- */
+  .brand{gap:0}
+  .brand .glyph{display:none}
+  .brand > span:not(.brand-live){display:none}
+  .wordmark{display:block;height:44px;width:300px;overflow:visible;flex:0 0 auto}
+  @media(max-width:560px){.wordmark{width:240px;height:36px}}
+  .wordmark .ground{stroke:rgba(63,214,196,.18);stroke-width:1.2;stroke-linecap:round}
+  .wordmark .body{fill:var(--accent)}
+  .wordmark .cap{fill:#2fb9a9}
+  .wordmark .label{fill:#0b1111}
+  .wordmark .txt{fill:var(--accent)}
+  .wordmark .capsule rect:first-child{fill:var(--accent)}
+  .wordmark .slot:nth-child(even) .capsule rect:first-child{fill:#2fb9a9}
+  .wordmark .capsule .hl{fill:rgba(255,255,255,.35)}
+  .wordmark .capsule text{font:800 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;fill:#06201d;letter-spacing:0}
+  .wordmark .bottle{transform-origin:34px 36px;animation:tipOver 8s cubic-bezier(.55,-.15,.35,1.15) infinite}
+  .wordmark .capsule{opacity:0;animation:tumble 8s cubic-bezier(.3,.7,.3,1) infinite}
+  @keyframes tipOver{
+    0%,10%{transform:rotate(0)}
+    20%,88%{transform:rotate(90deg)}
+    96%,100%{transform:rotate(0)}
+  }
+  @keyframes tumble{
+    0%,17%{opacity:0;transform:translate(var(--dx),-14px) rotate(-200deg) scale(.7)}
+    24%{opacity:1;transform:translate(calc(var(--dx) * .55),-16px) rotate(-90deg) scale(1)}
+    31%{transform:translate(0,2px) rotate(8deg)}
+    35%,86%{opacity:1;transform:translate(0,0) rotate(0)}
+    93%,100%{opacity:0;transform:translate(0,0) rotate(0)}
+  }
+  .wordmark .slot:nth-child(3) .capsule{--dx:-20px;animation-delay:0.000s}
+  .wordmark .slot:nth-child(4) .capsule{--dx:-41px;animation-delay:0.085s}
+  .wordmark .slot:nth-child(5) .capsule{--dx:-62px;animation-delay:0.170s}
+  .wordmark .slot:nth-child(6) .capsule{--dx:-83px;animation-delay:0.255s}
+  .wordmark .slot:nth-child(7) .capsule{--dx:-104px;animation-delay:0.340s}
+  .wordmark .slot:nth-child(8) .capsule{--dx:-125px;animation-delay:0.425s}
+  .wordmark .slot:nth-child(9) .capsule{--dx:-146px;animation-delay:0.510s}
+  .wordmark .slot:nth-child(10) .capsule{--dx:-167px;animation-delay:0.595s}
+  .wordmark .slot:nth-child(11) .capsule{--dx:-188px;animation-delay:0.680s}
+  .wordmark .slot:nth-child(12) .capsule{--dx:-209px;animation-delay:0.765s}
+  .wordmark .slot:nth-child(13) .capsule{--dx:-230px;animation-delay:0.850s}
+  @media(prefers-reduced-motion:reduce){.wordmark .bottle{animation:none;transform:rotate(90deg)}.wordmark .capsule{animation:none;opacity:1;transform:none}}
+
+  /* ---------- medication journal ---------- */
+  .jr-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:22px;align-items:start}
+  @media(max-width:760px){.jr-grid{grid-template-columns:1fr}}
+  .jr-note{width:100%;min-height:74px;resize:vertical;background:var(--card-2);border:1px solid var(--line-2);border-radius:10px;padding:11px 13px;font:500 .88rem/1.5 inherit;color:var(--ink);margin-top:10px}
+  .jr-note:focus{outline:0;border-color:var(--accent)}
+  .mood{display:flex;gap:6px;margin-top:10px}
+  .mood button{flex:1;border:1px solid var(--line-2);background:var(--card-2);border-radius:10px;padding:9px 4px;font:600 .74rem/1 inherit;color:var(--muted);cursor:pointer}
+  .mood button[aria-pressed="true"]{background:var(--accent);color:#06201d;border-color:var(--accent)}
+  .jr-log{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+  .jr-entry{background:var(--card-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.8rem;color:var(--muted);animation:fadeUp .3s ease}
+  .jr-entry b{color:var(--ink);display:block;font-size:.84rem;margin-bottom:2px}
+  .jr-entry .t{float:right;font-size:.7rem;color:var(--muted-2)}
+  .cm{display:flex;flex-direction:column;gap:10px}
+  .cm-row{display:grid;grid-template-columns:1fr 60px;gap:10px;align-items:center}
+  .cm-row .lb{font-size:.84rem;font-weight:600;display:flex;justify-content:space-between;margin-bottom:5px}
+  .cm-row .lb span{color:var(--muted);font-weight:500;font-size:.76rem}
+  .cm-bar{height:9px;border-radius:9px;background:var(--line);overflow:hidden}
+  .cm-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),#7cf0e2);transition:width .6s cubic-bezier(.22,.61,.36,1)}
+  .cm-row.you .cm-bar i{background:linear-gradient(90deg,#4fc3f7,#8fdcff)}
+  .cm-row .pc{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent)}
+  .cm-row.you .pc{color:#4fc3f7}
+  .cm-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px}
+  .cm-head b{font-size:.92rem}.cm-head span{font-size:.74rem;color:var(--muted)}
+  .anon{display:inline-flex;align-items:center;gap:6px;font-size:.7rem;font-weight:620;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:4px 9px;margin-bottom:12px}
+  .cm-flag{margin-top:12px;border:1px solid rgba(240,178,90,.35);background:rgba(240,178,90,.1);border-radius:10px;padding:10px 12px;font-size:.8rem;color:var(--ink);display:none}
+  .cm-flag.on{display:block}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#top">
+      <svg class="wordmark" viewBox="0 0 300 44" aria-label="Pillcounted" role="img"><line class="ground" x1="6" y1="36.5" x2="296" y2="36.5"/><g class="bottle"><rect class="body" x="10" y="8" width="24" height="28" rx="5"/><rect class="cap" x="13" y="3" width="18" height="7" rx="2.5"/><rect class="label" x="14" y="17" width="16" height="10" rx="2"/><rect class="txt" x="16.5" y="20" width="11" height="1.6" rx=".8"/><rect class="txt" x="16.5" y="23" width="8" height="1.6" rx=".8"/></g><g class="slot" style="transform:translate(64px,26px) rotate(-6deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">p</text></g></g><g class="slot" style="transform:translate(85px,26px) rotate(4deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">i</text></g></g><g class="slot" style="transform:translate(106px,26px) rotate(-3deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">l</text></g></g><g class="slot" style="transform:translate(127px,26px) rotate(5deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">l</text></g></g><g class="slot" style="transform:translate(148px,26px) rotate(-5deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">c</text></g></g><g class="slot" style="transform:translate(169px,26px) rotate(3deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">o</text></g></g><g class="slot" style="transform:translate(190px,26px) rotate(-4deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">u</text></g></g><g class="slot" style="transform:translate(211px,26px) rotate(6deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">n</text></g></g><g class="slot" style="transform:translate(232px,26px) rotate(-3deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">t</text></g></g><g class="slot" style="transform:translate(253px,26px) rotate(4deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">e</text></g></g><g class="slot" style="transform:translate(274px,26px) rotate(-5deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">d</text></g></g></svg><span class="glyph"><svg class="mark" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="mark-ring" cx="12" cy="12" r="10.2" stroke="rgba(255,255,255,.34)" stroke-width="1.3" stroke-dasharray="2.6 4.2"/><g fill="#fff"><rect class="mark-drop" x="7" y="8.6" width="3.8" height="3.8" rx="1.9"/><rect class="mark-drop d2" x="13.2" y="8.6" width="3.8" height="3.8" rx="1.9"/><rect class="mark-drop d3" x="10.1" y="8.6" width="3.8" height="3.8" rx="1.9"/></g><path d="M5.8 14.2h12.4l-1.5 4.4a2 2 0 0 1-1.9 1.3H9.2a2 2 0 0 1-1.9-1.3z" fill="rgba(255,255,255,.92)"/></svg></span>
+      <span>Pill<b>counted</b></span>
+    </a>
+    <nav class="nav-links">
+      <a href="#identify">Identify</a>
+      <a href="#track">Track</a>
+      <a href="#companion">Companion</a>
+      <a href="#journal">Journal</a>
+      <a href="#interactions">Interactions</a>
+      <a href="#prices">Prices</a>
+      <a href="#savings">Savings</a>
+      <a href="#alerts">Alerts</a>
+      <a href="#privacy">Privacy</a>
+    </nav>
+    <div class="nav-actions">
+            <a class="btn btn-primary" href="#cta">Get early access</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow">Medication clarity, in your pocket</span>
+        <h1>Know your medication.<br>Not just <span class="accent">its name.</span></h1>
+        <p class="lead">Point your camera at a pill. Pillcounted reads the imprint on your phone, checks current FDA labeling and recall records, keeps your doses on track, checks supplements and peptides against your prescriptions, and shows what it will cost — with your records kept on your device.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#cta">Get early access</a>
+          <a class="btn btn-secondary" href="#identify">See how it works</a>
+        </div>
+        <div class="meta-row">
+          <span class="meta"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg> Face ID lock</span>
+          <span class="meta"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6l8-4z"/></svg> Encrypted, on-device records</span>
+          <span class="meta"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg> Health data never sold</span>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="device">
+        <div class="badge-float a"><span class="bi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M9 3h6l1 18H8z"/><path d="M8 9h8M8 15h8"/></svg></span> Read on-device</div>
+        <div class="body">
+          <div class="screen">
+            <div class="d-head"><span class="t">Pillcounted</span><span class="live-dot"><i></i> Live demo</span></div>
+            <div class="d-body">
+
+              <!-- scene 1: identify -->
+              <div class="d-scene on" data-scene="0"><img class="shotslot" alt="Pillcounted app — recalls and news" data-src="img/app/identify.png">
+                <div class="v-label">Identified</div>
+                <div class="panel">
+                  <div class="pill-line">
+                    <div class="rx rx-oval">L484</div>
+                    <div class="txt">
+                      <strong>Acetaminophen 500&nbsp;mg</strong>
+                      <span>L484 · white oval</span>
+                      <span class="tag ok"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg> Matches FDA label</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="panel soft">
+                  <div class="kv"><span>Imprint read</span><b>On device</b></div>
+                  <div class="kv"><span>Label source</span><b>FDA / DailyMed</b></div>
+                  <div class="kv"><span>Recall records</span><b>1 checked</b></div>
+                </div>
+                <div class="panel"><span class="tag warn">1 possible recall match</span></div>
+              </div>
+
+              <!-- scene 2: today -->
+              <div class="d-scene" data-scene="1"><img class="shotslot" alt="Pillcounted app — track" data-src="img/app/track.png">
+                <div class="v-label">Today · 2 of 3 taken</div>
+                <div class="panel">
+                  <div class="dose on"><span class="b"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span> Metformin 500 mg · 8:00 AM</div>
+                  <div class="dose on"><span class="b"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span> Lisinopril 10 mg · 8:00 AM</div>
+                  <div class="dose"><span class="b"></span> Atorvastatin 20 mg · 9:00 PM</div>
+                </div>
+                <div class="panel soft">
+                  <div class="kv"><span>Current streak</span><b class="accent">12 days</b></div>
+                  <div class="kv"><span>30-day adherence</span><b>94%</b></div>
+                </div>
+                <div class="week" style="margin-top:2px"><i>M</i><i>T</i><i>W</i><i>T</i><i>F</i><i class="today">S</i><i class="off">S</i></div>
+              </div>
+
+              <!-- scene 3: price -->
+              <div class="d-scene" data-scene="2"><img class="shotslot" alt="Pillcounted app — price" data-src="img/app/price.png">
+                <div class="v-label">Cost · 30 tablets</div>
+                <div class="panel">
+                  <div class="kv"><span>Your plan tool</span><b>Sign in</b></div>
+                  <div class="kv"><span>Discount card</span><b class="accent">$4.20</b></div>
+                  <div class="kv"><span>Savings card</span><b>$8.75</b></div>
+                  <div class="kv"><span>Cash retail</span><b>$12.00</b></div>
+                </div>
+                <div class="panel soft">
+                  <div class="kv"><span>Best option today</span><b class="accent">Save $7.80</b></div>
+                </div>
+                <div class="panel"><span class="tag ok">Prices shown with their source</span></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+        <div class="badge-float b"><span class="bi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg></span> Locked with Face ID</div>
+        </div>
+        <div class="hero-tabs" id="heroTabs">
+          <button type="button" aria-pressed="true" data-tab="0">Recalls &amp; news</button>
+          <button type="button" aria-pressed="false" data-tab="1">Prescriptions</button>
+          <button type="button" aria-pressed="false" data-tab="2">Prices</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section style="padding:0">
+    <div class="wrap">
+      <div class="stats r">
+        <div class="stat"><b data-count="4">0</b><span>Public sources checked: FDA, CMS, NLM, RxNorm</span></div>
+        <div class="stat"><b data-count="100" data-suffix="%">0</b><span>Records kept on your device</span></div>
+        <div class="stat"><b data-count="0" data-prefix="$">0</b><span>Cost to identify a pill</span></div>
+        <div class="stat"><b data-count="3" data-suffix=" sec">0</b><span>From photo to label</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section>
+    <div class="wrap">
+      <div class="head r">
+        <span class="eyebrow">Everything in one place</span>
+        <h2>The whole job, from the pill in your hand to the price at the counter</h2>
+        <p class="lead">No account needed to try it. Nothing leaves your device unless a feature genuinely requires it — and then only with your consent.</p>
+      </div>
+      <div class="grid3 r">
+        <div class="f">
+          <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 12l9 4 9-4M3 17l9 4 9-4"/></svg></div>
+          <h3>Identify from a photo</h3>
+          <p>Photograph one pill and Pillcounted reads the imprint on your phone, then matches it against FDA labeling and public imprint data — with the source attached.</p>
+          <div class="fine">A photo alone can't confirm a pill — verify with a pharmacist.</div>
+        </div>
+        <div class="f">
+          <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3.2 2"/></svg></div>
+          <h3>Doses, reminders &amp; journal</h3>
+          <p>Set reminders, log doses, and keep a journal of how each medication feels. Compare your notes with anonymous, aggregated reports from others on the same medication.</p>
+        </div>
+        <div class="f">
+          <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M2 10h20"/></svg></div>
+          <h3>Price comparison</h3>
+          <p>Your plan's official pricing tool, discount cards, and saved quotes side by side — so you can compare instead of guess.</p>
+        </div>
+        <div class="f">
+          <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9L2 18a2 2 0 001.7 3h16.6A2 2 0 0022 18L13.7 3.9a2 2 0 00-3.4 0z"/></svg></div>
+          <h3>Recall &amp; shortage</h3>
+          <p>Check your medications against FDA enforcement and shortage records, with the source shown on every match.</p>
+        </div>
+        <div class="f">
+          <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+          <h3>Supplements, peptides &amp; OTC</h3>
+          <p>Log everything you take — vitamins, herbal supplements, research peptides, over-the-counter medicines — and check interactions with your saved prescriptions.</p>
+        </div>
+        <div class="f">
+          <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg></div>
+          <h3>Reminder companion</h3>
+          <p>A pixel companion you feed with Treats earned by logging doses on time. It levels up and unlocks its wardrobe; it never records a dose for you.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- IDENTIFY -->
+  <section class="band-surface" id="identify">
+    <div class="wrap zig">
+      <div class="copy r">
+        <span class="eyebrow">Identify</span>
+        <h2>Point your camera. Get the label.</h2>
+        <p class="lead">A loose pill in a drawer is a genuine question. Pillcounted reads the characters stamped on it, then looks up what that imprint actually belongs to.</p>
+        <ul class="list">
+          <li><span class="tick"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span> Reads printed and debossed imprints on your device</li>
+          <li><span class="tick"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span> Reports "couldn't read it" instead of guessing</li>
+          <li><span class="tick"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span> Shows the matching FDA label and its source</li>
+        </ul>
+      </div>
+      <div class="visual r">
+        <div class="lab" id="scanLab">
+          <div class="lab-top"><span class="dots"><i></i><i></i><i></i></span><b>Pill identifier</b><span class="chip">Interactive</span></div>
+          <div class="lab-body">
+            <span class="try-hint">Pick a pill to scan <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg></span>
+            <div class="scan-tray" id="scanTray">
+              <button class="scan-opt" type="button" aria-pressed="true" data-i="0"><span class="rx rx-oval" style="transform:scale(.82)">L484</span><small>White oval</small></button>
+              <button class="scan-opt" type="button" aria-pressed="false" data-i="1"><span class="rx rx-round">TEVA</span><small>Yellow round</small></button>
+              <button class="scan-opt" type="button" aria-pressed="false" data-i="2"><span class="rx rx-cap">R 8</span><small>Blue capsule</small></button>
+              <button class="scan-opt" type="button" aria-pressed="false" data-i="3"><span class="rx rx-worn">· ·</span><small>Worn imprint</small></button>
+            </div>
+            <div class="viewfinder" id="viewfinder">
+              <span class="grain"></span>
+              <div class="vf-frame"><span></span><span></span><span></span><span></span></div>
+              <div class="vf-subject" id="vfSubject"><span class="rx rx-oval">L484</span></div>
+              <div class="vf-line"></div>
+              <div class="vf-status" id="vfStatus">Ready — tap Scan</div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+              <button class="btn btn-primary" type="button" id="scanGo">Scan this pill</button>
+              <button class="btn btn-secondary" type="button" id="scanReset">Reset</button>
+            </div>
+            <div class="result" id="scanResult"><div class="idle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8V5a2 2 0 012-2h3M16 3h3a2 2 0 012 2v3M21 16v3a2 2 0 01-2 2h-3M8 21H5a2 2 0 01-2-2v-3"/></svg><span>Choose one of the four pills above and tap <b>Scan this pill</b>. The last one has a worn imprint — that is the case worth seeing.</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRACK -->
+  <section id="track">
+    <div class="wrap zig rev">
+      <div class="copy r">
+        <span class="eyebrow">Stay on track</span>
+        <h2>Stay on schedule without the nagging.</h2>
+        <p class="lead">A simple daily list, gentle reminders, and a streak that builds — plus insights you'd actually show a doctor.</p>
+        <ul class="list">
+          <li><span class="tick"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span> One clear list of what's due and what's done</li>
+          <li><span class="tick"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span> Reminders that don't expose the drug name on your lock screen</li>
+          <li><span class="tick"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span> Family profiles for the people you care for</li>
+        </ul>
+      </div>
+      <div class="visual r">
+        <div class="lab" id="trackLab">
+          <div class="lab-top"><span class="dots"><i></i><i></i><i></i></span><b>Today's doses</b><span class="chip">Tap to log</span></div>
+          <div class="lab-body">
+            <div class="track-lab">
+              <div id="doseList">
+                <button class="dose-row" type="button" aria-pressed="true"><span class="box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="rx rx-round" style="width:26px;height:26px;font-size:.42rem">TEVA</span><span class="nm"><b>Metformin 500 mg</b><span>8:00 AM · with breakfast</span></span></button>
+                <button class="dose-row" type="button" aria-pressed="true"><span class="box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="rx rx-round pink" style="width:26px;height:26px;font-size:.42rem">L10</span><span class="nm"><b>Lisinopril 10 mg</b><span>8:00 AM</span></span></button>
+                <button class="dose-row" type="button" aria-pressed="false"><span class="box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="rx rx-oval" style="width:34px;height:22px;font-size:.42rem">A20</span><span class="nm"><b>Atorvastatin 20 mg</b><span>9:00 PM</span></span></button>
+                <button class="dose-row" type="button" aria-pressed="false"><span class="box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="rx rx-round blue" style="width:26px;height:26px;font-size:.42rem">D3</span><span class="nm"><b>Vitamin D 2000 IU</b><span>9:00 PM</span></span></button>
+              </div>
+              <div class="track-side">
+                <div class="ringwrap">
+                  <div class="ring">
+                    <svg viewBox="0 0 132 132"><circle class="tr" cx="66" cy="66" r="56" fill="none" stroke-width="11"/><circle class="pg" id="ringPg" cx="66" cy="66" r="56" fill="none" stroke-width="11" stroke-dasharray="351.9" stroke-dashoffset="351.9"/></svg>
+                    <span class="lbl"><span><b id="ringPct">50%</b><span>Today</span></span></span>
+                  </div>
+                </div>
+                <div class="col">
+                  <div class="week"><i>M</i><i>T</i><i>W</i><i>T</i><i>F</i><i class="today">S</i><i class="off">S</i></div>
+                  <div class="streak-note" id="streakNote"><b>12-day</b> streak — 2 doses left today.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPANION -->
+  <section id="companion">
+    <div class="wrap">
+      <div class="head r">
+        <span class="eyebrow">Reminder companion</span>
+        <h2>A pixel companion that grows when you show up</h2>
+        <p class="lead">Log a dose on time and you earn Treats. Feed your companion and it levels up, hops, and unlocks its wardrobe. Snacks grow the companion — they never record a medication dose.</p>
+      </div>
+      <div class="lab r" id="compLab">
+        <div class="lab-top"><span class="dots"><i></i><i></i><i></i></span><b>Companion</b><span class="chip">Feed it</span></div>
+        <div class="lab-body">
+          <div class="comp-lab">
+            <div>
+              <div class="yard">
+                <span class="sky"></span>
+                <span class="name" id="compName">Biscuit · Capybara</span>
+                <span class="lvl" id="compLvl">Lv 1</span>
+                <div class="critter" id="critter"><img id="critterImg" alt="Pixel-art capybara companion"></div>
+                <div class="toast" id="compToast">Yum!</div>
+              </div>
+              <div class="pick" id="compPick">
+                <button type="button" aria-pressed="true" data-c="capybara" data-n="Biscuit"><img alt=""> Biscuit</button>
+                <button type="button" aria-pressed="false" data-c="dog" data-n="Pepper"><img alt=""> Pepper</button>
+                <button type="button" aria-pressed="false" data-c="cat" data-n="Mochi"><img alt=""> Mochi</button>
+                <button type="button" aria-pressed="false" data-c="otter" data-n="River"><img alt=""> River</button>
+              </div>
+            </div>
+            <div>
+              <div class="treats"><div><b id="treatBal">5</b> <span>Treats</span></div><span>Earned by logging doses on time</span></div>
+              <div class="lvlbar"><i id="lvlFill"></i></div>
+              <div class="lvl-meta"><span id="lvlMeta">4 snacks to level 2</span><span id="feedsToday">0 / 6 snacks today</span></div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn btn-primary" type="button" id="feedBtn">Feed Biscuit · 1 Treat</button>
+                <button class="btn btn-secondary" type="button" id="earnBtn">Log a dose (+2 Treats)</button>
+              </div>
+              <div class="wardrobe" id="wardrobe">
+                <span class="got">Lv 1 · Plain</span><span data-lv="2">Lv 2 · Red cap</span><span data-lv="3">Lv 3 · Bow</span><span data-lv="4">Lv 4 · Beanie</span><span data-lv="5">Lv 5 · Crown</span>
+              </div>
+              <p class="comp-note"><b>Why it works:</b> the companion only eats when you have Treats, and Treats only come from doses logged on time. Snacks are capped at six a day, so a streak — not a marathon — is what raises it.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICES -->
+  <section id="prices" class="band-surface">
+    <div class="wrap price-wrap" style="grid-template-columns:.8fr 1.2fr">
+      <div class="r">
+        <span class="eyebrow">Prices &amp; insurance</span>
+        <h2 style="margin:18px 0 18px">"How much is this going to cost me?" — answered honestly.</h2>
+        <p class="lead">Pillcounted never invents a copay. It points you to your plan's official pricing tool, lines up discount-card and coupon options, and lets you save what you were actually quoted.</p>
+      </div>
+      <div class="lab r" id="priceLab">
+        <div class="lab-top"><span class="dots"><i></i><i></i><i></i></span><b>Price explorer</b><span class="chip">Interactive</span></div>
+        <div class="lab-body">
+          <div class="ctrl-row">
+            <div>
+              <label for="drugSel">Medication</label>
+              <select class="sel" id="drugSel">
+                <option value="0">Atorvastatin 20 mg</option>
+                <option value="1">Metformin 500 mg</option>
+                <option value="2">Sertraline 50 mg</option>
+                <option value="3">Escitalopram 10 mg</option>
+              </select>
+            </div>
+            <div>
+              <label>Quantity</label>
+              <span class="seg" id="qtySeg">
+                <button type="button" aria-pressed="true" data-q="30">30 days</button>
+                <button type="button" aria-pressed="false" data-q="90">90 days</button>
+              </span>
+            </div>
+          </div>
+          <div class="bars" id="priceBars"></div>
+          <div class="save-note">
+            <div><span class="big" id="saveBig">$0.00</span> <span style="font-size:.85rem;color:var(--muted)">difference between the highest and lowest option</span></div>
+            <small>Illustrative figures for demonstration. Discount cards are not insurance, and only your plan or pharmacy can confirm a final price.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- JOURNAL -->
+  <section id="journal">
+    <div class="wrap">
+      <div class="head r">
+        <span class="eyebrow">Medication journal</span>
+        <h2>Write down how a medication feels — and see if others feel it too</h2>
+        <p class="lead">Log side effects, mood and notes against each medication. Then compare with anonymous, aggregated reports from other Pillcounted users on the same medication to see whether what you're feeling is common or worth a call.</p>
+      </div>
+      <div class="lab r" id="jrLab">
+        <div class="lab-top"><span class="dots"><i></i><i></i><i></i></span><b>Journal · Sertraline 50 mg</b><span class="chip">Log an entry</span></div>
+        <div class="lab-body">
+          <div class="jr-grid">
+            <div>
+              <div class="ix-group"><h4>How are you feeling today?</h4>
+                <div class="ix-chips" id="jrSym">
+                  <button type="button" aria-pressed="false" data-k="nausea">Nausea</button>
+                  <button type="button" aria-pressed="false" data-k="sleep">Trouble sleeping</button>
+                  <button type="button" aria-pressed="false" data-k="head">Headache</button>
+                  <button type="button" aria-pressed="false" data-k="dizzy">Dizziness</button>
+                  <button type="button" aria-pressed="false" data-k="appetite">Less appetite</button>
+                  <button type="button" aria-pressed="false" data-k="better">Feeling better</button>
+                </div>
+              </div>
+              <div class="mood" id="jrMood">
+                <button type="button" aria-pressed="false" data-m="1">Rough</button>
+                <button type="button" aria-pressed="false" data-m="2">Meh</button>
+                <button type="button" aria-pressed="true" data-m="3">Okay</button>
+                <button type="button" aria-pressed="false" data-m="4">Good</button>
+                <button type="button" aria-pressed="false" data-m="5">Great</button>
+              </div>
+              <textarea class="jr-note" id="jrNote" placeholder="Optional note — e.g. queasy for an hour after the morning dose, fine by lunch."></textarea>
+              <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center">
+                <button class="btn btn-primary" type="button" id="jrSave">Save entry</button>
+                <label style="font-size:.78rem;color:var(--muted);display:flex;gap:7px;align-items:center;cursor:pointer"><input type="checkbox" id="jrShare" checked style="accent-color:var(--accent)"> Share anonymously to the community tally</label>
+              </div>
+              <div class="jr-log" id="jrLog">
+                <div class="jr-entry"><span class="t">Tue</span><b>Okay · Nausea</b>Queasy after breakfast dose, gone by 11.</div>
+                <div class="jr-entry"><span class="t">Mon</span><b>Meh · Trouble sleeping, Headache</b>Took it at 9pm — maybe too late.</div>
+              </div>
+            </div>
+            <div>
+              <span class="anon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg> Anonymous · aggregated · no names, no accounts</span>
+              <div class="cm-head"><b>What others on Sertraline 50 mg report</b><span id="cmN">1,284 people · last 90 days</span></div>
+              <div class="cm" id="cmRows"></div>
+              <div class="cm-flag" id="cmFlag"></div>
+              <div class="src" style="margin-top:14px">Community tallies are opinions from other users, not clinical data, and never a reason to stop a medication on your own. Persistent or severe effects: call your pharmacist or prescriber.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INTERACTIONS -->
+  <section id="interactions" class="band-surface">
+    <div class="wrap">
+      <div class="head r">
+        <span class="eyebrow">Everything you take, not just prescriptions</span>
+        <h2>Log supplements, peptides, OTC and more — and check them against your meds</h2>
+        <p class="lead">Vitamins, herbal supplements, research peptides, over-the-counter painkillers, even grapefruit. Record them alongside your prescriptions and Pillcounted checks for food &amp; supplement interactions with what you've saved.</p>
+      </div>
+      <div class="lab r" id="ixLab">
+        <div class="lab-top"><span class="dots"><i></i><i></i><i></i></span><b>Food &amp; supplement interactions</b><span class="chip">Add what you take</span></div>
+        <div class="lab-body">
+          <div class="ix-grid">
+            <div>
+              <div class="ix-group"><h4>Your saved medications</h4>
+                <div class="meds">
+                  <div><span class="rx rx-round" style="width:22px;height:22px;font-size:0"></span><b>Metformin 500 mg</b><span>Diabetes</span></div>
+                  <div><span class="rx rx-round pink" style="width:22px;height:22px;font-size:0"></span><b>Lisinopril 10 mg</b><span>Blood pressure</span></div>
+                  <div><span class="rx rx-oval" style="width:30px;height:18px;font-size:0"></span><b>Atorvastatin 20 mg</b><span>Cholesterol</span></div>
+                  <div><span class="rx rx-round blue" style="width:22px;height:22px;font-size:0"></span><b>Sertraline 50 mg</b><span>Mood</span></div>
+                </div>
+              </div>
+              <div class="ix-group"><h4>Supplements &amp; vitamins</h4><div class="ix-chips" data-cat="supp">
+                <button type="button" aria-pressed="false" data-k="sjw">St John's Wort</button>
+                <button type="button" aria-pressed="false" data-k="mag">Magnesium</button>
+                <button type="button" aria-pressed="false" data-k="vitd">Vitamin D3</button>
+                <button type="button" aria-pressed="false" data-k="fish">Fish oil</button>
+              </div></div>
+              <div class="ix-group"><h4>Peptides</h4><div class="ix-chips" data-cat="pep">
+                <button type="button" aria-pressed="false" data-k="gh">Growth-hormone-type peptide</button>
+                <button type="button" aria-pressed="false" data-k="bpc">BPC-157</button>
+                <button type="button" aria-pressed="false" data-k="glp">GLP-1 (compounded)</button>
+              </div></div>
+              <div class="ix-group"><h4>Over the counter &amp; food</h4><div class="ix-chips" data-cat="otc">
+                <button type="button" aria-pressed="false" data-k="ibu">Ibuprofen</button>
+                <button type="button" aria-pressed="false" data-k="grape">Grapefruit</button>
+                <button type="button" aria-pressed="false" data-k="alc">Alcohol</button>
+                <button type="button" aria-pressed="false" data-k="nic">Nicotine pouch</button>
+              </div></div>
+            </div>
+            <div>
+              <div class="ix-group"><h4>Interactions with what you've recorded</h4></div>
+              <div class="ix-out" id="ixOut"><div class="ix-empty">Tap anything on the left. Pillcounted checks it against your saved medications and shows every match with a plain-language note and its source.</div></div>
+              <div class="src" style="margin-top:14px">Demonstration set. Interaction notes are information, not medical advice — confirm with a pharmacist or prescriber before changing anything you take.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SAVINGS METER -->
+  <section id="savings" class="band-surface">
+    <div class="wrap">
+      <div class="head center r">
+        <span class="eyebrow">Savings meter</span>
+        <h2>What discount cards and a bit of tracking are worth</h2>
+        <p class="lead">A live, modelled estimate — not a claim about your prescriptions. Move the sliders to see the maths on your own list.</p>
+      </div>
+
+      <div class="meter r">
+        <div class="tickers">
+          <div class="tick">
+            <span class="tick-label">Modelled savings, running total</span>
+            <b class="tick-num" id="tickMoney">$0</b>
+            <span class="tick-sub"><i class="pulse"></i> counting since you opened this page</span>
+          </div>
+          <div class="tick">
+            <span class="tick-label">Time not spent calling around</span>
+            <b class="tick-num" id="tickTime">0h 00m</b>
+            <span class="tick-sub"><i class="pulse"></i> at 11 minutes saved per price check</span>
+          </div>
+        </div>
+
+        <div class="calc">
+          <div class="calc-row">
+            <label for="rxCount">Prescriptions you fill each month <b id="rxCountOut">3</b></label>
+            <input type="range" id="rxCount" min="1" max="12" step="1" value="3">
+          </div>
+          <div class="calc-row">
+            <label for="rxPrice">Typical cash price per fill <b id="rxPriceOut">$32</b></label>
+            <input type="range" id="rxPrice" min="8" max="180" step="2" value="32">
+          </div>
+          <div class="calc-out">
+            <div class="co"><span>Estimated saved per year</span><b id="outMoney">$0</b></div>
+            <div class="co"><span>Hours back per year</span><b id="outTime">0h</b></div>
+            <div class="co"><span>Doses logged per year</span><b id="outDoses">0</b></div>
+          </div>
+          <div class="calc-bar"><i id="calcFill"></i></div>
+          <p class="calc-fine">Model: discount-card pricing typically lands well under cash retail on common generics, and one saved price call runs about eleven minutes. Your actual savings depend on your plan, pharmacy, quantity and medication — Pillcounted always shows the quoted figure and its source rather than a promise.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ALERTS -->
+  <section id="alerts">
+    <div class="wrap">
+      <div class="head r">
+        <span class="eyebrow">Safety</span>
+        <h2>Recall and shortage checks, spelled out</h2>
+        <p class="lead">A "possible match" is never a confirmation. Every alert shows its source and tells you exactly what to confirm with a pharmacist.</p>
+      </div>
+      <div class="lab r" id="recallLab">
+        <div class="lab-top"><span class="dots"><i></i><i></i><i></i></span><b>Recall &amp; shortage check</b><span class="chip">Try a medication</span></div>
+        <div class="lab-body">
+          <div class="check-form">
+            <input id="recallInput" type="text" placeholder="Type a medication name — e.g. Metformin" autocomplete="off" spellcheck="false">
+            <button class="btn btn-primary" type="button" id="recallGo">Check records</button>
+          </div>
+          <div class="chip-row" id="recallChips">
+            <button type="button">Metformin 500 mg</button>
+            <button type="button">Amoxicillin 500 mg</button>
+            <button type="button">Atorvastatin 20 mg</button>
+            <button type="button">Semaglutide</button>
+          </div>
+          <div class="verdict show" id="recallOut" style="border-style:dashed;background:#fff;padding:0;border:0"><div class="idle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg><span>Type a medication or pick one above to see how a match is reported — including what you would still need to confirm yourself.</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREENS -->
+  <section id="moments">
+    <div class="wrap">
+      <div class="head r">
+        <span class="eyebrow">The real thing</span>
+        <h2>Straight from the app</h2>
+        <p class="lead">Prescriptions organised, cash prices across pharmacies, and recall news — the way it looks on your phone.</p>
+      </div>
+      <div class="screens r">
+        <figure><img src="img/app/store-track.png" alt="Pillcounted home: every prescription organised with reminders and pickup info" loading="lazy"><figcaption><b>Every prescription, organised</b>Reminders, pickup info, assistant, pill identifier and other substances in one list.</figcaption></figure>
+        <figure><img src="img/app/store-price.png" alt="Pillcounted prices: compare cash prices across Costco, Walmart and more" loading="lazy"><figcaption><b>Compare prices before you fill</b>Cash prices across Costco, Walmart, Walgreens and more, lowest first.</figcaption></figure>
+        <figure><img src="img/app/store-identify.png" alt="Pillcounted news: real-time recall and shortage alerts" loading="lazy"><figcaption><b>Stay ahead of recalls</b>Real-time alerts on recalls and drug shortages with an evidence check.</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARE -->
+  <section id="compare" class="band-surface">
+    <div class="wrap">
+      <div class="head center r">
+        <span class="eyebrow">The difference</span>
+        <h2>Compared with doing it the hard way</h2>
+        <p class="lead">Pillcounted doesn't replace your pharmacist. It replaces the fifteen minutes of squinting and searching that comes before you call them.</p>
+      </div>
+      <div class="table r">
+        <table>
+          <thead>
+            <tr><th>&nbsp;</th><th>On your own</th><th class="c">With Pillcounted</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Read a tiny, worn imprint</td><td class="dim">Squint and guess</td><td class="c"><span class="yes">On-device photo read</span></td></tr>
+            <tr><td>Find the right FDA label</td><td class="dim">Search a dozen pages</td><td class="c"><span class="yes">Matched with the source</span></td></tr>
+            <tr><td>Know what it will cost</td><td class="dim">Call the pharmacy</td><td class="c"><span class="yes">Plan tool + discount cards</span></td></tr>
+            <tr><td>Remember every dose</td><td class="dim">Sticky notes</td><td class="c"><span class="yes">Reminders and streaks</span></td></tr>
+            <tr><td>Hear about a recall</td><td class="dim">Maybe never</td><td class="c"><span class="yes">Checked against FDA records</span></td></tr>
+            <tr><td>"Is this side effect normal?"</td><td class="dim">Guess, or search forums</td><td class="c"><span class="yes">Journal + anonymous community tally</span></td></tr>
+            <tr><td>Check a supplement or peptide</td><td class="dim">Forum threads</td><td class="c"><span class="yes">Interactions against your list</span></td></tr>
+            <tr><td>Keep it private</td><td class="dim">&mdash;</td><td class="c"><span class="yes">On-device, locked, never sold</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRIVACY -->
+  <section id="privacy" class="dark">
+    <div class="wrap p-grid">
+      <div class="r">
+        <span class="eyebrow">Privacy by design</span>
+        <h2>Your medications are nobody's business but yours</h2>
+        <p class="lead" style="margin-bottom:14px">A medication list can reveal a diagnosis. Pillcounted treats it that way — because a health app that monetises your prescriptions is not a health app you can trust.</p>
+        <div class="item"><span class="tick"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span><div><strong>Records stay on your device</strong><span>Medications, dose logs and family profiles are stored locally and encrypted at rest.</span></div></div>
+        <div class="item"><span class="tick"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span><div><strong>No health data in ads or analytics</strong><span>Medication and prescription details are never sent to advertising or analytics services.</span></div></div>
+        <div class="item"><span class="tick"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span><div><strong>Delete your account and data</strong><span>Available in the app — it deletes your cloud account and your local records.</span></div></div>
+      </div>
+      <div class="statcard r">
+        <div class="sh">
+          <span class="g"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg></span>
+          <div><b>Senior-safe by default</b><span>Large text, high contrast, plain language.</span></div>
+        </div>
+        <div class="ln"><span>Records on device</span><b>Encrypted</b></div>
+        <div class="ln"><span>App Lock</span><b>Face ID / PIN</b></div>
+        <div class="ln"><span>Health data sold</span><b>Never</b></div>
+        <div class="ln"><span>Account deletion</span><b>In-app</b></div>
+        <div class="ln"><span>Ad or analytics access</span><b>None</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section>
+    <div class="wrap">
+      <div class="head center r" style="margin-bottom:40px"><span class="eyebrow">Questions</span><h2>Good to know</h2></div>
+      <div class="faq r">
+        <details><summary>Is Pillcounted a replacement for my pharmacist?</summary><p>No. Pillcounted is a self-tracking and information aid. It is not a substitute for professional medical advice, and a photograph alone cannot confirm a pill. Always confirm what you're taking with a pharmacist or prescriber.</p></details>
+        <details><summary>Can it tell me my exact copay?</summary><p>It points you to your plan's official pricing tool and shows discount-card and coupon options. The exact copay depends on your deductible, formulary tier, pharmacy and quantity, so only your insurer or pharmacy can confirm it.</p></details>
+        <details><summary>Where is my information kept?</summary><p>Your medications, dose logs and family profiles stay on your device, encrypted at rest and locked behind Face ID. Features that need an outside service — like an FDA lookup — send only the minimum required, and say so in the app.</p></details>
+        <details><summary>Does it store or sell my health data?</summary><p>No. Medication and prescription details are never used for advertising or analytics, and your health information is never sold. You can delete your account and associated data from inside the app.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section id="cta" class="band-surface">
+    <div class="wrap cta">
+      <span class="eyebrow">Coming to the App Store</span>
+      <h2>Know exactly what's in your hand.</h2>
+      <p class="lead">Join the early-access list and we'll tell you the moment Pillcounted is available.</p>
+      <div class="cta-actions">
+        <a class="btn btn-primary" href="mailto:hello@pillcounted.app?subject=Pillcounted%20early%20access">Get early access</a>
+        <a class="btn btn-secondary" href="mailto:hello@pillcounted.app?subject=Pillcounted%20question">Contact us</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <div>
+        <a class="brand" href="#top" style="margin-bottom:16px"><svg class="wordmark" viewBox="0 0 300 44" aria-label="Pillcounted" role="img"><line class="ground" x1="6" y1="36.5" x2="296" y2="36.5"/><g class="bottle"><rect class="body" x="10" y="8" width="24" height="28" rx="5"/><rect class="cap" x="13" y="3" width="18" height="7" rx="2.5"/><rect class="label" x="14" y="17" width="16" height="10" rx="2"/><rect class="txt" x="16.5" y="20" width="11" height="1.6" rx=".8"/><rect class="txt" x="16.5" y="23" width="8" height="1.6" rx=".8"/></g><g class="slot" style="transform:translate(64px,26px) rotate(-6deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">p</text></g></g><g class="slot" style="transform:translate(85px,26px) rotate(4deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">i</text></g></g><g class="slot" style="transform:translate(106px,26px) rotate(-3deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">l</text></g></g><g class="slot" style="transform:translate(127px,26px) rotate(5deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">l</text></g></g><g class="slot" style="transform:translate(148px,26px) rotate(-5deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">c</text></g></g><g class="slot" style="transform:translate(169px,26px) rotate(3deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">o</text></g></g><g class="slot" style="transform:translate(190px,26px) rotate(-4deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">u</text></g></g><g class="slot" style="transform:translate(211px,26px) rotate(6deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">n</text></g></g><g class="slot" style="transform:translate(232px,26px) rotate(-3deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">t</text></g></g><g class="slot" style="transform:translate(253px,26px) rotate(4deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">e</text></g></g><g class="slot" style="transform:translate(274px,26px) rotate(-5deg)"><g class="capsule"><rect x="-10" y="-9" width="20" height="18" rx="9"/><rect class="hl" x="-7" y="-6" width="7" height="4" rx="2"/><text y="4.6" text-anchor="middle">d</text></g></g></svg><span class="glyph"><svg class="mark" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="mark-ring" cx="12" cy="12" r="10.2" stroke="rgba(255,255,255,.34)" stroke-width="1.3" stroke-dasharray="2.6 4.2"/><g fill="#fff"><rect class="mark-drop" x="7" y="8.6" width="3.8" height="3.8" rx="1.9"/><rect class="mark-drop d2" x="13.2" y="8.6" width="3.8" height="3.8" rx="1.9"/><rect class="mark-drop d3" x="10.1" y="8.6" width="3.8" height="3.8" rx="1.9"/></g><path d="M5.8 14.2h12.4l-1.5 4.4a2 2 0 0 1-1.9 1.3H9.2a2 2 0 0 1-1.9-1.3z" fill="rgba(255,255,255,.92)"/></svg></span><span>Pill<b>counted</b></span></a>
+        <p style="max-width:34ch;color:var(--muted);font-size:.9rem">Medication clarity for you and the people you care for — identify, track, compare, and stay ahead of recalls.</p>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <a href="#identify">Identify a pill</a>
+        <a href="#track">Doses &amp; reminders</a>
+        <a href="#companion">Reminder companion</a>
+        <a href="#journal">Medication journal</a>
+        <a href="#interactions">Supplements &amp; interactions</a>
+        <a href="#prices">Prices &amp; insurance</a>
+        <a href="#alerts">Recall &amp; shortage</a>
+        <a href="#savings">Savings meter</a>
+      </div>
+      <div>
+        <h4>Trust</h4>
+        <a href="#privacy">Privacy</a>
+        <a href="mailto:hello@pillcounted.app?subject=Privacy%20request">Privacy request</a>
+        <a href="mailto:hello@pillcounted.app?subject=Pillcounted%20support">Support</a>
+      </div>
+      <div>
+        <h4>Get the app</h4>
+        <a href="#cta">Early access</a>
+        <a href="#compare">Compare</a>
+      </div>
+    </div>
+    <div class="legal">
+      <strong style="color:var(--muted)">Important:</strong> Pillcounted is an informational and self-tracking aid. It does not provide medical advice, diagnosis or treatment, and it is not a substitute for a pharmacist, prescriber or emergency services. A photograph alone cannot confirm a pill — always verify medication with a pharmacist. Prices, coverage, shortages and recall information are estimates drawn from third-party and public sources and can change or be incomplete; confirm with your insurer, pharmacy or the manufacturer. Pillcounted is not affiliated with, endorsed by, or acting on behalf of the FDA, CMS, NLM or any insurer, and no government or insurer relationship is implied. This page is a product preview and is not medical advice.
+    </div>
+    <div class="copybar">
+      <span>© <span id="yr"></span> Pillcounted. All rights reserved.</span>
+      <span>Confirm every medication with a pharmacist.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById("yr").textContent = new Date().getFullYear();
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
+  },{rootMargin:"0px 0px -6% 0px",threshold:.06});
+  document.querySelectorAll(".r").forEach(function(el){ io.observe(el); });
+  // safety net: never leave content invisible if the observer never fires
+  setTimeout(function(){ document.querySelectorAll(".r:not(.in)").forEach(function(el){
+    if(el.getBoundingClientRect().top < window.innerHeight*1.2) el.classList.add("in");
+  }); }, 1400);
+  window.addEventListener("hashchange", function(){
+    setTimeout(function(){ document.querySelectorAll(".r:not(.in)").forEach(function(el){
+      var t = el.getBoundingClientRect().top; if(t < window.innerHeight && t > -el.offsetHeight) el.classList.add("in");
+    }); }, 60);
+  });
+</script>
+<script>
+(function(){
+  "use strict";
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+  var $ = function(s,r){ return (r||document).querySelector(s); };
+  var $$ = function(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+  var money = function(n){ return "$" + n.toFixed(2); };
+
+  /* ---------- hero scene cycling ---------- */
+  (function(){
+    var tabs = $("#heroTabs"); if(!tabs) return;
+    var scenes = $$(".d-scene"), btns = $$("button",tabs), i = 0, timer;
+    function go(n){
+      i = n;
+      scenes.forEach(function(s,k){ s.classList.toggle("on", k===n); });
+      btns.forEach(function(b,k){ b.setAttribute("aria-pressed", k===n ? "true":"false"); });
+    }
+    function play(){ if(reduce) return; timer = setInterval(function(){ go((i+1)%scenes.length); }, 3600); }
+    function stop(){ clearInterval(timer); }
+    tabs.addEventListener("click", function(e){
+      var b = e.target.closest("button"); if(!b) return;
+      stop(); go(+b.dataset.tab);
+    });
+    var stage = $(".stage");
+    if(stage){ stage.addEventListener("mouseenter", stop); }
+    play();
+  })();
+
+  /* ---------- pill identifier ---------- */
+  (function(){
+    var lab = $("#scanLab"); if(!lab) return;
+    var tray = $("#scanTray"), vf = $("#viewfinder"), subj = $("#vfSubject"),
+        status = $("#vfStatus"), out = $("#scanResult"), go = $("#scanGo"), reset = $("#scanReset");
+
+    var PILLS = [
+      { art:'<span class="rx rx-oval">L484</span>', imprint:"L484", desc:"White · oval · scored",
+        name:"Acetaminophen 500 mg", form:"Tablet · Oral", conf:97, ok:true,
+        rows:[["Imprint","L484"],["Shape / colour","Oval · white"],["Label source","FDA · DailyMed"],["Recall records","None matched"]],
+        src:"Matched against FDA labeling and the NLM imprint library." },
+      { art:'<span class="rx rx-round">TEVA</span>', imprint:"TEVA 7202", desc:"Yellow · round",
+        name:"Metformin HCl 500 mg", form:"Tablet · Oral", conf:93, ok:true,
+        rows:[["Imprint","TEVA 7202"],["Shape / colour","Round · yellow"],["Label source","FDA · DailyMed"],["Recall records","1 possible match"]],
+        src:"One enforcement record shares this medication name — confirm the full NDC and lot." },
+      { art:'<span class="rx rx-cap">R 8</span>', imprint:"R 8 / blue-white", desc:"Blue &amp; white capsule",
+        name:"Two candidate labels", form:"Capsule · Oral", conf:61, ok:false,
+        rows:[["Imprint read","R 8"],["Candidates","2 records"],["Why unsure","Partial second line"],["Next step","Check the bottle NDC"]],
+        src:"Pillcounted shows every candidate rather than picking one for you." },
+      { art:'<span class="rx rx-worn">· ·</span>', imprint:"unreadable", desc:"Worn · no legible imprint",
+        name:"Couldn’t read this one", form:"No confident match", conf:0, ok:false,
+        rows:[["Imprint read","Not legible"],["Candidates","0 records"],["Guessed anyway","No"],["Next step","Ask a pharmacist"]],
+        src:"An honest “I don’t know” is safer than a confident wrong answer." }
+    ];
+    var cur = 0, busy = false;
+
+    var IDLE = out.innerHTML;
+    function setPill(i){
+      cur = i;
+      $$(".scan-opt",tray).forEach(function(b){ b.setAttribute("aria-pressed", (+b.dataset.i===i)?"true":"false"); });
+      subj.innerHTML = PILLS[i].art;
+      status.textContent = "Ready — tap Scan";
+      out.innerHTML = IDLE;
+    }
+    function render(p){
+      var tone = p.conf >= 90 ? "ok" : (p.conf > 0 ? "warn" : "warn");
+      var rows = p.rows.map(function(r){ return '<div class="kv"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>'; }).join("");
+      var tag = p.ok
+        ? '<span class="tag ok"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg> Matches FDA label</span>'
+        : '<span class="tag warn">Not confirmed — verify with a pharmacist</span>';
+      out.innerHTML =
+        '<div class="result-card">'+
+          '<div class="rc-head">'+p.art+'<div class="t"><strong>'+p.name+'</strong><span>'+p.form+'</span>'+tag+'</div></div>'+
+          rows+
+          '<div class="conf"><div class="conf-bar'+(p.conf>=90?"":" warnbar")+'"><i></i></div>'+
+          '<div class="conf-meta"><span>Read confidence</span><span>'+(p.conf?p.conf+"%":"no confident read")+'</span></div></div>'+
+          '<div class="src"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg> '+p.src+'</div>'+
+        '</div>';
+      setTimeout(function(){
+        var c = $(".result-card",out); if(c) c.classList.add("show");
+        var f = $(".conf-bar i",out); if(f) f.style.width = Math.max(p.conf,4)+"%";
+      }, 60);
+    }
+    function scan(){
+      if(busy) return; busy = true; out.innerHTML = "";
+      out.removeAttribute("style");
+      var p = PILLS[cur];
+      if(reduce){ status.textContent = "Read on device"; render(p); busy=false; return; }
+      vf.classList.add("scanning");
+      var steps = ["Focusing…","Reading imprint on device…","Matching FDA records…"], k = 0;
+      status.textContent = steps[0];
+      var iv = setInterval(function(){
+        k++;
+        if(k < steps.length){ status.textContent = steps[k]; return; }
+        clearInterval(iv);
+        vf.classList.remove("scanning");
+        status.textContent = p.conf ? "Read: " + p.imprint : "Couldn’t read the imprint";
+        render(p); busy = false;
+      }, 780);
+    }
+    tray.addEventListener("click", function(e){ var b = e.target.closest(".scan-opt"); if(b){ setPill(+b.dataset.i); } });
+    go.addEventListener("click", scan);
+    reset.addEventListener("click", function(){ setPill(cur); });
+    setPill(0);
+  })();
+
+  /* ---------- dose tracker ---------- */
+  (function(){
+    var list = $("#doseList"); if(!list) return;
+    var pg = $("#ringPg"), pct = $("#ringPct"), note = $("#streakNote"), C = 351.9;
+    function update(){
+      var rows = $$(".dose-row",list),
+          done = rows.filter(function(r){ return r.getAttribute("aria-pressed")==="true"; }).length,
+          p = Math.round(done/rows.length*100), left = rows.length - done;
+      pg.style.strokeDashoffset = C - C*(p/100);
+      pct.textContent = p + "%";
+      note.innerHTML = left === 0
+        ? "All done — that’s a <b>13-day</b> streak."
+        : "<b>12-day</b> streak — " + left + " dose" + (left>1?"s":"") + " left today.";
+    }
+    list.addEventListener("click", function(e){
+      var r = e.target.closest(".dose-row"); if(!r) return;
+      r.setAttribute("aria-pressed", r.getAttribute("aria-pressed")==="true" ? "false":"true");
+      update();
+    });
+    update();
+  })();
+
+  /* ---------- price explorer ---------- */
+  (function(){
+    var lab = $("#priceLab"); if(!lab) return;
+    var sel = $("#drugSel"), seg = $("#qtySeg"), bars = $("#priceBars"), big = $("#saveBig"), qty = 30;
+    var DATA = [
+      { n:"Atorvastatin 20 mg", o:[["Discount card","Cash price",8.40,18.90],["Manufacturer savings card","Higher tier",12.50,31.00],["Pharmacy cash","Retail counter",34.00,88.00],["Warehouse pharmacy","Membership",11.20,26.40]] },
+      { n:"Metformin 500 mg",   o:[["Discount card","Cash price",4.20,9.60],["Manufacturer savings card","Higher tier",8.75,22.50],["Pharmacy cash","Retail counter",19.00,46.00],["Warehouse pharmacy","Membership",6.30,14.80]] },
+      { n:"Sertraline 50 mg",   o:[["Discount card","Cash price",7.10,16.20],["Manufacturer savings card","Higher tier",14.00,34.00],["Pharmacy cash","Retail counter",42.00,104.00],["Warehouse pharmacy","Membership",9.80,23.00]] },
+      { n:"Escitalopram 10 mg", o:[["Discount card","Cash price",9.30,21.00],["Manufacturer savings card","Higher tier",16.40,39.00],["Pharmacy cash","Retail counter",51.00,126.00],["Warehouse pharmacy","Membership",12.90,29.50]] }
+    ];
+    function draw(){
+      var d = DATA[+sel.value], idx = qty===30 ? 2 : 3;
+      var vals = d.o.map(function(o){ return o[idx]; });
+      var max = Math.max.apply(null, vals), min = Math.min.apply(null, vals);
+      bars.innerHTML = d.o.map(function(o){
+        var v = o[idx], best = v===min;
+        return '<div class="bar-row'+(best?" best":"")+'">'+
+          '<div class="who"><b>'+o[0]+(best?' · best':'')+'</b><span>'+o[1]+'</span></div>'+
+          '<div class="bar-track"><div class="bar-fill" data-w="'+(v/max*100)+'"></div></div>'+
+          '<div class="amt">'+money(v)+'</div></div>';
+      }).join("");
+      setTimeout(function(){
+        $$(".bar-fill",bars).forEach(function(f){ f.style.width = f.dataset.w + "%"; });
+      }, 30);
+      var diff = max - min, shown = 0;
+      big.textContent = money(diff);
+      if(reduce){ big.textContent = money(diff); return; }
+      var t0 = null;
+      function step(ts){
+        if(!t0) t0 = ts;
+        var k = Math.min((ts-t0)/650,1);
+        shown = diff * (1 - Math.pow(1-k,3));
+        big.textContent = money(shown);
+        if(k<1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+    sel.addEventListener("change", draw);
+    seg.addEventListener("click", function(e){
+      var b = e.target.closest("button"); if(!b) return;
+      qty = +b.dataset.q;
+      $$("button",seg).forEach(function(x){ x.setAttribute("aria-pressed", x===b ? "true":"false"); });
+      draw();
+    });
+    draw();
+  })();
+
+  /* ---------- recall & shortage checker ---------- */
+  (function(){
+    var lab = $("#recallLab"); if(!lab) return;
+    var input = $("#recallInput"), go = $("#recallGo"), chips = $("#recallChips"), out = $("#recallOut");
+    var DB = [
+      { k:"metformin", tone:"warn", t:"1 possible recall match",
+        p:"An FDA enforcement record lists a metformin product from one manufacturer. A name match is <b>not</b> a confirmation that your bottle is affected.",
+        m:["FDA enforcement report","Matched on: drug name","Confirm: NDC + lot"],
+        a:"Check the full NDC and lot number on your bottle, then call your pharmacy." },
+      { k:"amoxicillin", tone:"warn", t:"Reported supply constraint",
+        p:"Manufacturer-reported availability is limited for some presentations. Availability varies branch by branch and changes often.",
+        m:["FDA shortage database","Matched on: drug name","Confirm: your branch"],
+        a:"Call the branch before you drive over — supply differs by location." },
+      { k:"semaglutide", tone:"bad", t:"Counterfeit &amp; compounding warnings on record",
+        p:"Public warnings exist about counterfeit product and compounded versions of this medication.",
+        m:["FDA safety communication","Matched on: drug name","Confirm: pharmacy source"],
+        a:"Only fill through a licensed pharmacy, and confirm the source with your prescriber." },
+      { k:"atorvastatin", tone:"ok", t:"No records matched",
+        p:"Nothing in the checked recall or shortage records matches this medication name today.",
+        m:["FDA enforcement report","FDA shortage database","Checked: today"],
+        a:"Pillcounted keeps checking and tells you if that changes." }
+    ];
+    var ICONS = {
+      ok:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>',
+      warn:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9L2 18a2 2 0 001.7 3h16.6A2 2 0 0022 18L13.7 3.9a2 2 0 00-3.4 0z"/></svg>',
+      bad:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>'
+    };
+    function check(){
+      var q = (input.value||"").trim();
+      if(!q){ input.focus(); return; }
+      var lc = q.toLowerCase();
+      var hit = DB.filter(function(d){ return lc.indexOf(d.k) > -1; })[0] || {
+        tone:"ok", t:"No records matched",
+        p:"Nothing in the checked recall or shortage records matches that name in this demo set.",
+        m:["FDA enforcement report","FDA shortage database","Checked: today"],
+        a:"In the app this check re-runs whenever the records update."
+      };
+      out.removeAttribute("style");
+      out.className = "verdict " + hit.tone;
+      out.innerHTML =
+        '<div class="vh"><span class="vi">'+ICONS[hit.tone]+'</span><b>'+q+' — '+hit.t+'</b></div>'+
+        '<p>'+hit.p+' <span style="color:var(--ink);font-weight:600">'+hit.a+'</span></p>'+
+        '<div class="meta">'+hit.m.map(function(x){ return "<span>"+x+"</span>"; }).join("")+'</div>'+
+        '<div class="src" style="margin-top:12px">Demonstration data set for this page. In the app, every match links to the record it came from.</div>';
+      setTimeout(function(){ out.classList.add("show"); }, 30);
+    }
+    go.addEventListener("click", check);
+    input.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); check(); } });
+    chips.addEventListener("click", function(e){
+      var b = e.target.closest("button"); if(!b) return;
+      input.value = b.textContent.trim(); check();
+    });
+  })();
+
+  /* ---------- count-up stats ---------- */
+  (function(){
+    var els = $$("[data-count]"); if(!els.length) return;
+    function run(el){
+      var to = +el.dataset.count, pre = el.dataset.prefix||"", suf = el.dataset.suffix||"";
+      el.textContent = pre + to + suf;
+      if(reduce || to===0) return;
+      var t0 = null;
+      function step(ts){
+        if(!t0) t0 = ts;
+        var k = Math.min((ts-t0)/1100,1), v = Math.round(to * (1 - Math.pow(1-k,3)));
+        el.textContent = pre + v + suf;
+        if(k<1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+    var io = new IntersectionObserver(function(en){
+      en.forEach(function(e){ if(e.isIntersecting){ run(e.target); io.unobserve(e.target); } });
+    },{threshold:.4});
+    els.forEach(function(el){ io.observe(el); });
+  })();
+
+  /* ---------- savings meter ---------- */
+  (function(){
+    var money$ = $("#tickMoney"); if(!money$) return;
+    var time$ = $("#tickTime"),
+        rx = $("#rxCount"), pr = $("#rxPrice"),
+        rxOut = $("#rxCountOut"), prOut = $("#rxPriceOut"),
+        oMoney = $("#outMoney"), oTime = $("#outTime"), oDoses = $("#outDoses"), fill = $("#calcFill");
+
+    // running community-scale ticker (modelled, clearly labelled on the page)
+    var started = Date.now(), base = 128400, perSec = 3.9;      // modelled dollars
+    var minsBase = 41200, minsPerSec = 0.42;                     // modelled minutes
+    function fmtMoney(n){ return "$" + Math.floor(n).toLocaleString("en-US"); }
+    function fmtTime(mins){
+      var h = Math.floor(mins/60), m = Math.floor(mins%60);
+      return h.toLocaleString("en-US") + "h " + (m<10?"0":"") + m + "m";
+    }
+    function tick(){
+      var s = (Date.now()-started)/1000;
+      money$.textContent = fmtMoney(base + s*perSec);
+      time$.textContent  = fmtTime(minsBase + s*minsPerSec);
+    }
+    tick();
+    if(!reduce) setInterval(tick, 120);
+
+    // personal calculator
+    function calc(){
+      var n = +rx.value, price = +pr.value;
+      rxOut.textContent = n;
+      prOut.textContent = "$" + price;
+      // modelled: discount-card pricing lands ~55% under cash retail on common generics, floor of $4
+      var perFill = Math.max(price - Math.max(price*0.45, 4), 0);
+      var yearly = perFill * n * 12;
+      var hours = (n * 12 * 11) / 60;   // 11 minutes saved per price check
+      var doses = n * 365;
+      oMoney.textContent = "$" + Math.round(yearly).toLocaleString("en-US");
+      oTime.textContent = Math.round(hours) + "h";
+      oDoses.textContent = doses.toLocaleString("en-US");
+      fill.style.width = Math.min(yearly/2400*100, 100) + "%";
+    }
+    rx.addEventListener("input", calc);
+    pr.addEventListener("input", calc);
+    calc();
+  })();
+})();
+</script>
+<script>
+(function(){
+  "use strict";
+  var $ = function(s,r){ return (r||document).querySelector(s); };
+  var $$ = function(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+  var SPRITES = {"capybara_plain": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAAB4CAYAAACkRf0fAAAD30lEQVR42u3dPWgVWRgG4MRY+FOI+FsZFRRtDGolC2sC22rnFq6FiI02KW0EEWwsLAJCGpEUYrE/jWkVszbCwgbjCrusokZUVBRtBCuvbeYE7ng4M/fMvfM83eHOTCajL+f7Zs7cDA0BAAAAAAAAAACDYNglYKnxsW2dpeO5hRfDKfuHYo9XtxX+yWkzAUAAoK1WugRq/qXjC5MnixtMzXRijrds/1BwvNw9gRkAJRAIAOgBaH3NHzhz5EDXzzfv3Nf185u/3yo7XtaewAyAEggEAPQAauJey30f/N3Th4Xx7fnnXbf/6cD2pP2/o8foaU9gBkAJBAIAeoD21fCla1fqFrnWJndP8e+LD4Xx3m0buvYIZaZn57P2RGYAlEAgANBCjXsnOLamz17DN8zFqZmoHiG83uNjo133Pzw+0fXzP+fuJu0fnr/nACAAIABQuezPAWLXpw+6cG1NrLL1+0PBWpvYGr1M7P6pv68ZAAQABACi1f4coOy+fr/X/Llr2KqVveMb+uHE+cJ49579Xbe/fHxX1PHrXitkBkAJBAIALVT5c4Be39d/+Pf9wnjfwUNJNfybj58L463r1yadX9XHy93jnLv5uLjBpT9q/fl1vzNsBkAJBAIAeoD+q0nDmjrsCUJlNXj4eVjD5z5er69vKLyPv6wnKNk+NPHz6ajzm549awYAAQABgDTJ6yrK7vvnXivT9Pv6/f6cIFZY83/59Cpq/18mrxTGI1+/FMaxzwXMACiBQACghSp/DtC09fFV19RNP17Txdb8oclTRwvjq9d+NQOAAIAAQOYeAJYK/55A+LbGXwuPo443db34d4dHzAAgACAAoAegpzV9rOvXbhTGd/55G7V/6tofMwAIAAgAVP/doOH7Ad/xffX0Uc0/t7CY9Xx8NygIAAgAJPMcYMBr9vSae7HWGtwMAAIAAgA9l/1vhLX9OUHVNbua3wwAAgACALl7gNgeoek9QdNq9tQaf/nng13zmwFAAEAAoHlrgVZt2V0Yv/z/QdftN65b06oavsymdasje4J21fxmABAAEABoXg9QVvOHpmfnk37e+Nho1t839R3bYz/u8b/YDAACAAIAfd0DpNfU0fe1O3XW2L/d+6/S8y17vwIzAAgACAAMWg/w5PXHWnuG1Bo7rPlzr7Wp+nqZAUAAQABAAEAAQABAAKCvNO45wKPn753PAJ2fGQAEAAQA9AB1G90yuiPtCJ2GnU/e81t8u/jMDAACAAIAA6XyteqpNe+OrZ2nMds/ezO8s84L1LTzafr59VvPYAZACQQCAHqA5qn+Pjr9XLObAUAAQAAg2TdRUD1wi52ikAAAAABJRU5ErkJggg==", "capybara_hat": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAAB4CAYAAACkRf0fAAAD8UlEQVR42u3dT4hVVRwH8FFbpBJD4J+hhYOC4kpRVxLYDK0LXNSiWkQUkZtZuglEcFELFwPCbEQEw4USQQOtCsc2QdDQWGCk6IzkoJFoiyE3Nm09d4Z3O5xz3z3v3c9nd3z33bnznC+/3+/+mRkZAQAAAAAAhtUGHwG9TBzctZpzf3ML94r6mdvov5guEwAEAMwAsE7Pv/zPaNb9v7L576JmAhUALRAIAHTQCz4CPf/z61NT7wevf/zZVyoACAAIAJgBGOKev2mfvHG4+k/B8fT7uoAKgBYIBADMAHrifmv7Xpg/79wI1t/OLwbrS6deyvr1Fm+WNROoAGiBQADADNC9Hr7f58HXmL5Y1DO33yw8CdbXbz/L+u2urCz3fH3vNhUABAAEALo2A8T29K338ImyH3/NTLHOjBBs/9Hr4z13/9rEZM/Xr89dq3n/8Z6vn56+qAKAAIAAwJDPAG3fn16a6r05sda5t2akV88f2+PXiX1/6verAoAAgABAtMbvRa87rz/oPX/bPWxuO/YciNr+1fc+Ddb79h/quf3n7+yN2v/M7Hywzv18gAqAFggEADoo+3WAfp/Xv/HTD8H6wJGjST38g8crwXrs5a1Jx5d7f23POCcv3wo3OPNlo1+/6WeGVQC0QCAAYAYYvJ602lNXZ4Kquh68+nq1h297f/3+fKuq5/HXzAQ121dNvv1h1PHNzJ5QAUAAQAAgTfJ9FXXn/du+V6b08/qDfp0gVrXnf/rkftT73506G6w3/fs0WMdeF1AB0AKBAEAHZb8OUNr98bl76tL3V7rYnr9q6oM3g/W581dUABAAEABoeQaA59289yhYV5/W+HHhVtT+pi98Haw3qQAgACAAYAagrz19rAvnvwjW3/3yMOr9qff+qAAgACAAkP93g1afD/gfv6+eAer55xaWWj0evxsUBAAEAJK5DjDkPXt6z73UaA+uAoAAgABA37X+N8K6fp0gd8+u51cBQABAAKDtGSB2Rih9JiitZ0/t8de+Ptw9vwoAAgACAOXdC/Tizn3B+o/ff+65/bbRLZ3q4etsH90cORN0q+dXAUAAQACgvBmgruevmpmdT/p6EwfHW/1+U5+xfevYfj/FKgAIAAgADPQMkN5TR5/XXm2yx776/W9Zj7fu+QpUABAAEAAYthng9vLjRmeG1B672vO3fa9N7s9LBQABAAEAAQABAAEAAYCBUtx1gF8X/3I8Q3R8KgAIAAgAmAGaNr5zfHfaHlYLO552j2/p4dJdFQAEAAQAhkr2e9VTe97dY6t3Yra/+2DDniY/oNKOp/TjG7SZQQVACwQCAGaA8uQ/j84g9+wqAAgACAAk+w/xjTL8kecjyAAAAABJRU5ErkJggg==", "dog_plain": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACwCAYAAACIGWW2AAAFmElEQVR42u3dT4hVVRwH8GdEiU1iYVNBk9lCLVpkBS1KzaAiNIiijUSQLqYIUtyJlmSWrSKjAheTm2gTtYgSSiLNDApNIUXHhTpOUJbMwkTGFtm2exzu8XT/vvc+n9313nn3vuuP3/ly3v3T6QAAAAAAAAAAAAAAAAAAAAAAAAAATZvmFOR7atH8i0X+/rM9o85xjiucAhQgChCacKVMl2/rhuFiO9y8LWl//ZYZdUAUIAoQGtFzeSOW8Qpnuoqt3rytrzKiDogCRAFCI7p+HjDMfG3PeDFbVi2JbXKxlzKhDogCRAFCI7ouP3R75jv/29FSP2/dyO5ON2dCHRAFiAKE/syAtV+f1/JMV3YmjGk6M+qAGIJRgNAfGTDMfOtfejZ3+8Hrrim0v/E/zuauHxqc2VUZL9W56UO56994/6NGM6EOiCEYBQiNqPx6wNTMV3bGiznw0w+56+cPXd/TBfDiEwvDf6r1ekMdEEMwChB6MwOmKjrvF1qx8ZPc9e8+f0fu+tHxiUoz4WOb9uau/+rVBwp9/sDkeGb5VMHMrANiCAYFiAw4lbLn/cLfYsNMFnPs6IHM8rwF2Xmvl7cfScqERc1d8V72HzYtbFVB1D0vqANiCEYBQm9kwFQTpw5nlgcmZxb6vDDTdba3K2OFGTQmnCcsOi+oA4ICRAFCHRkwzHhFhb/Fps4LxhweO5O0f3RAFCAoQGTA5oW/5V4yLxhYvDg7r7b2rTXVHmDk+r/weNY/pAOCAkQBggwYis3LDT98Q5DxPqj1+P65kL0H48iekdztT+38UAcEBYgChL7PgAN/zy7090Xn9ZYuXl7o77/Z+XHS9rc+sjKzPPHl54X2f+6qM0nb/3LiTx0QQzAoQGTAZFPcN5q5r3SK+04zwmeX3DlrdqnHF87L9brYs2DCzPf9oV9j/586IIZgUIDIgJUL57FS5wWLZr7Uebym7Tp5KLM8OGtGbubTATEEgwJEBqxC6rxgmFHC5WX3p+2/2+/iDTNdTGrmC+f9dEAMwaAA6QvTmj6A8JnSD951S25G2bJqSaH9hdfbhR5d/lyt33/jK2szy6f37Sj0eZ/uGe3knc9nnlyW9HmrN2+LZXodEEMwKEBkwNIzYZg5wvVVZ8JYRgwz3Guvv527PlR25gtt3TCcuz58D0vMupHdpWZCHRBDMAoQGlH79YBhhiu6/YybFyRlnH3Hfg+W30w6/lime+HxBaVmvPvm3VQoA6ZmPB0QQzAoQPpC5fOAYYaLzUvV7bvduxrdfyzjpYpl4phYZg4zp3lADMGgAOlKrbsvOHXeKjXzhJ8fZrDblq+p9Pud/OKdRjNf7PxWnfl0QAzBoABphdLnAWPzfk3/Nll2xiv7eYOp7wkJM2DZ57fs6/90QAzBoABphcrnAdt+PVrVmc751QFRgKAA6ccMWLbwt8rY9XThvF/bM154n3Ld7w8Oz68OiCEYFCAy4OWIPRM69iyXWAZJvYei394NVzTjVX39nw6IIRgUIL2ZAVMz4dOL5vtfqDHj6YCgAFGA0Gnhe0Ji6n4mdNX2/ngwszx09udCmS+cx4tl7Lrn/XRADMGgAGmFxq8H/B+Zo9T3hNSd8VIzXcxlZLiLJZ9/HRBDMChAZMCuE95jkTovmJrpYoq+R6SCjK0DYggGBUjvm9b2A0x9z0jRZ6WMz7yn0u9T9bvjqn6enw6IIRgUID2h6+YBYxnv24NjmeWld8/J3f7S3153NPr9Yhkv9fvpgKAAUYDQCxmwbH+dv5BZvnbG1Y1mulTddh+wDogCBAVIKzT+O+GcG+fMTdn+3nnTj/93ObzvNTXThdt/vf9kpd+36uPdf2zy9pTjGTs9dkIHxBAMCpC+0/g8YGoGGTvdSbrvNVVqhko3erzMT2v79X46IAoQFCCt9C9Rle0Xx7acFQAAAABJRU5ErkJggg==", "dog_hat": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACwCAYAAACIGWW2AAAF0ElEQVR42u3dTahUVQAH8PciVEzFwrSgl+lCLVxkBS5Ky6AiNIiijURQLSwCE3eiJdn3JjIqaqEuijZRiyihJNLMyNAUUvS5UJ8vqFfmwkTec5Ftu0e5x+P9nJnfb3edcebOvD/n/Dn3Y/r7eswji+aeb/P+fb5zsL+X/h5X9IEAIoDQgK7vG2HnOzAyrtX7O3/GuZ7qhEZABBABBAFEAEEAEUAQQAQQBBABBAFEAEEAEUAQQAQQBBABBAFEAEEAEUC4JFf22gf+aP3kVu/fmx/8bQQEAUQAQQARQBBABBDK1vH3nku953On3R8wptPvH2gERAARQNABL6fz7T461tN/wIWzx3d0JzQCIoAIIAggAggCiABCLTr+mpCfNq/sqP09+/vhUl9vzaYdRkAQQAQQUjV+3DD1fL6N61Z0daeruxM2fezYCIgpGAGE3uiAYedb+9zjuc+ffvVVhd5v+M/TuY8PTJ/SUR0v1ZkJA7mPv/rex412QiMgpmAEEBpR+bHg1M5XdseL2ffzj7mPzx24pqsD8OxDC8J/Ol9nJzQCYgpGAKE7O2Cqout+oeXrP819/J0nb859fHD4VKWd8IENu3If//rFOwu9/qTR4cz2iYKd2QiIKRgEEB3wYspe9wuPxYadLObI4X2Z7TnzsuteK7ccSuqERc1a/m72HzYsaFUg6l4XNAJiCkYAoTs6YKpTJw5mtieNTin0emGn69vSro4VdtCYcJ2w6LqgERAEEAGEOjpg2PGKCo/Fpq4LxhwcOpn0/hgBEUAQQHTA5oXHci9YFwwsXpxdV1v9xqpqdzBy/l+4P2vvMQKCACKAoAOGYutyK+69Nuh479e6f/+OZa/BOLRzU+7zT2zbbAQEAUQAoec74KRz0wr9/6LreksWLyv0/7/d9knS82+876nM9qmvvij0/mfGnUx6/q/H/jICYgoGAUQHTHaR60Yz15Ve5LrTjPDeJbdMnVbq/oXrct0udi+YsPP9cOC32N/TCIgpGAQQHbBy4TpW6rpg0c6Xuo7XtO3HD2S2p0+dmNv5jICYgkEA0QGrkLouGHaUcHvpwrT37/SreMNOF5Pa+cJ1PyMgpmAQQHpCf9M7EN5T+q75N+R2lNefvrvQ+4Xn24XuX/ZErZ9//QurM9sje7YWer3Pdg725X2fjz28NOn1nn/lw1inNwJiCgYBRAcsvROGnSN8vOpOGOuIYYd76eW3ch8Pld35QhvXrch9PPwdlpg1m3aU2gmNgJiCEUBoRO3nA4YdrujzJ14/L6nj7DnyR7D9WtL+xzrdMw/OK7Xj3THnukIdMLXjGQExBYMA0hMqXwcMO1xsXapu3+/Y3uj7xzpeqlgnjol15rBzWgfEFAwCSEdq3XXBqetWqZ0nfP2wg920bFWln+/4l2832vli32/Vnc8IiCkYBJBWKH0dMLbu1/SxybI7Xtn3G0z9nZCwA5b9/ZZ9/p8REFMwCCCtUPk6YNvPR6u60/l+jYAIIAggvdgByxYeq4ydTxeu+7W944XXKdf9+8Hh92sExBQMAogOeCli94SO3csl1kFSr6Hotd+GK9rxqj7/zwiIKRgEkO7sgKmd8NFFc/0Vaux4RkAQQAQQ+lr4OyExdd8Tumq7du/PbA+c/qVQ5wvX8WIdu+51PyMgpmAQQFqh8fMBL6NzlPo7IXV3vNROF3MJHe58yd+/ERBTMAggOmDHCa+xSF0XTO10MUV/R6SCjm0ExBQMAkj362/7Dqb+zkjRe6UMT7mt0s9T9W/HVX0/PyMgpmAQQLpCx60Dxjred/uHMttLbp2Z+/wLj71ubfTzxTpe6uczAoIAIoDQDR2wbP+cHctsT544vtFOl6rTrgM2AiKAIIC0QuPHCWfOmDkr5fm3z5lw9P/b4XWvqZ0ufP43e49X+nmr3t+9R0Znp+zP0MjQMSMgpmAQQHpO4+uAqR1kaKQv6brXVKkdKt3g0TJfre3n+xkBEUAQQFrpP+Q368d/8W9/AAAAAElFTkSuQmCC", "cat_plain": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAAC4CAYAAABkSufbAAAFjElEQVR42u3dS2gdVRgH8Bt1Yxe1Ilh8QKnQEBCfBFHbNFFIF0IfShelLioUtCvXWl+gtenGjSC4cdGF0EUXSkWh3SREEymaiiCEBFoCGokLURd10xK3mWO4x+O87/x+u+G+5s79OOfPN3fO9HoAAAAAAAAAAAAAAAC0zVDTdmj32MT6xu1vZqeH/EyDezxv8ROhAFGAUIfbmpZRXn/znczjU6d6MuEAH08jIKZgFCB0MwNSrtVf14yAoABRgND4DDgaZJZjx0+ET9EX3CDs+4XH60Dw/LNGQFCAKECoIQPGzlX2Gt63arumZWojIKZgFCB0IwOGYucqwz5Wr+IME2bWVGXvT6zvZwQEBYgChCZmwKqlZrp/9SkThddgVJ0ZjYCgAFGAMAgZMOxzLY9NhE9ZLzPTpUr9vFhmzNv3W15aNAKCAkQBwsD1AVMz16WLFzPbk/v2lfr62PM3+b+eERAUIAoQWp8BNznXmel7bdLX62t8fLzVP0DetVs+SOzrzc1Ox34PIyCmYFCAyIC1Z8JQ1edyq850qXYNj2S2z37ycerxNgJiCgYFSPc0/l5xdWe+1ZavVRNmQhkQFCAKEHodvC541fqDRkBQgChAqL0nlLfvF8t0p999r+/jJ99+q9bvX/X+Na0vaATEFIwChFo0vg+Yt2+3tHglsz088ljfDFZ2Jnzp6AtJGdAICAoQBQhdyIB5M1+YqZqWscIMmvp96u5bGgFRgKAAUYCgAFGAoABppYG7JiTsk8X6gHv37s5sHzm8v9T9S92fPRPPGgFBAaIAQQbMmQnLznihGzduZrYXFub7Pv/8Z18aAUEBogCh8xlw8ta/cr3+rudfLHR/fv/o076Pb33lSK73P3zoucz2nxfO5Xq/Sze3GgFBAaIAoXEZMHafkMmXjxb6eWFfbtBZIxoUIAoQmpgBY6bmf8r1+jP7i818eft8VR+PBx96pNcvY1sfEFMwKEA6aajpOxiuIX3s+Imk1393eT4tM56udi2Z106mrfVyx7Y7+z4+Nztd6P6VnRGNgJiCUYBQi4G/JmT0iacy2+H/7UIHnxmtNgO+/2Fme/rrb0v9vNT7sEydKrdvaATEFIwChFo0rg8Y9v02OZdZqlgfMMyIYYY788arfR8Pff7FV5V+vwMHD2W2U9fkLvr/hUZATMEoQOhGBgwzXl6xvlaYcZaXFnN93sSeJ/s+XnQfb9fwSFImC6WeO5cBMQWDAkQGLCPzpZ6LLNvMzEytnx/LeKnuvWd7rtfHMnP4f0MZEFMwKEBaqfX3C07NPOH7hxms7DWkz52/UGvmix3fsjOfERBTMChAGqHwPmCs75ea8YpWdMYrer3B1PuEhBmw6ONb9vqCRkBMwShAqEXpfcC6M1/dmc7xNQKiAEEB0sUMWLTwXGXs/3Rh36/pGS9cu6bq+wfnvWbGCIgpGBQg3cyAsXu/xa5TjWWQ1GsounZvuLwZr+z//xkBMQWDAmQwM2BqJnx6bMKvUGHGMwKCAkQBQq8Ba0SnrheYd7272H1CqjY/N5fZ/uW3P3JlvrCPF8vYVff9jICYgkEB0gi1/x/wf2SOXPcPrjvjpWa6mP+Q4dYLPv5GQEzBoACRAVsnvMYitS+Ymuliyr4/cN0ZzwiIKRgUII001PQdTL3PSN61Uu67e1up3ydv5ku9d5wMCAoQBQibaF0fMJbxfvxhIbP98KOP931+eO51eane7xfLeKnfzwgIChAFCIOQAYv29/Xrme3bt2ypNdOlatt1wEZAFCAoQBqh9vOEO7bv2Jny/PuHd17duB1e95qa6cLnX/n+cqnft+z9/Xnp2gMp+7OytnLNCIgpGBQgnVN7HzA1g6ysrSRd95oqNUOlmuv1rhb5fk3/v58REAUICpBG+gdmY/SoqB2oFgAAAABJRU5ErkJggg==", "cat_hat": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAAC4CAYAAABkSufbAAAFuklEQVR42u3dS4hVZQAH8DvVJiEzpIYeIAYOA9GTIcrXTMG4CHwULsQIA8FctWhV9hDL1HUQuGkhEbhwURgFuplhaiakxgiCYYSxgR5MUVSSbRTber6Ge/o6r+/e8/vtDvd17p3/fOfPd16dDgAAAADQ7wba9oU3bBq7lvL6fT410aq/yQ3+BxFABBB0wBo63y9Lvya9vrcPrm5VJzQCIoAIIAggAggCiABCLW5KbYXCebu27Rtt2+9pBEQAEUBoZwcMO8orrx3MPH70cEcn7OPf0wiITTACCO3sgFTrx5+WjIAggAggJN8BR4LOsmfv/vAp5gWvE877hb/XtuD5J4yAIIAIIDTQAfP2VXYqnrd6/+AtSf9BXjpe7fun1qmNgNgEI4DQjg4YyttXGc5jdVo+Lxg772cEBAFEACHFDlh1Rwo9d+hS0usfXh8w9WtaGwERQBBAdMA6hPNchxa+66s/yF8Llwr9HnkuzM8ZAUEAEUAQQAQQAQQBpH0aP3Yu3Ne5ftNY1OtHR0cLff7ZM2cyy+NbtlT6+vD5993/YKH1j53Xm56ayCy7PiA2wSCAtFLj+4KX6SBdj3/713nEian7enzrhoYzyyfeOx77exsBsQkGAaR9kjuHNvfaMX3e6coWdkIdEAQQAYROC+8T0uudzggIAogAQgmSOx4wdt4vr9MdefOtro8feOP1Rr9/3euX2rygERCbYAQQGpH8PGDRebv5ufOZ5aHhh7t2sKo74fO7n4nqgEZAEEAEENrQAYt2vrBTpdaxwg4a+32anrc0AiKAIIAIIAggAggCSE/qu3NCwnmyvHnAzZs3ZJZ37dxa6frFrs/GsSeNgCCACCDogAU7YdUdL3TlytXM8uzsTNfnn/rwEyMgCCACCK3vgOM3/lno9auffrbU9fnt3Q+6Pr7yhV2F3n/njqcyy3+cPlno/c5eXWkEBAFEACG5Dph3n5DxfbtL/bxwXq7fuUY0CCACCCl2wDxHZ74t9PpjW8vtfEXn+er+PZa5H/G1lDqhERCbYAQQGjGQ+gqG15Des3d/1Ou/PDcT1xmP1HstmZcPxF3r5dZVt3V9fHpqotT1q7ojGgGxCUYAoRF9f07IyKOPZ5bD4+1C258YqbcDvv1OZnnisy8q/bzY+7AcPVztvKEREJtgBBAakdw8YDjvt8y+zErlzQOGHTHscMdefbHr46GPPv601u+3bfuOzHLsNbnLPr7QCIhNMAII7eiAYccrKm9eK+w4F+bnCn3e2MbHuj5e9jzeuqHhqE4Wit13rgNiEwwCiA5YReeL3RdZtcnJyUY/P6/jxbrrzsFCr8/rzOHxhjogNsEggPSknr9fcGznCd8/7GBVX0P65KnTjXa+vN+36s5nBMQmGASQJJQ+D5g37xfb8cpWdscr+3qDsfcJCTtg2b9v1dcXNAJiE4wAQiMqnwdsuvM13en8vkZABBAEkDZ2wLKF+yrzjqcL5/1S73jhtWvqvn9w0XNmjIDYBIMA0s4OmHfvt7zzVPM6SOw5FG27N1zRjlf18X9GQGyCQQDpzw4Y2wnXbxrzV6ix4xkBQQARQOgkcI3o2OsFFr3eXd59Quo2Mz2dWf7h598Ldb5wHi+vY9c972cExCYYBJAkNH484P/oHIXuH9x0x4vtdHn+Q4e7VvLvbwTEJhgEEB2w54TnWMTOC8Z2ujxV3x+46Y5nBMQmGASQJA2kvoKx9xkpeq2Uu+9YVen3Kdr5Yu8dpwOCACKAsIyemwfM63jffD2bWX7goUe6Pj/c93phvtnvl9fxYr+fERAEEAGEfuiAZfv78uXM8s0rVjTa6WL12nnARkAEEASQJDS+n3DN4Jq1Mc+/Z2jtwvXL4XmvsZ0ufP75r85V+n2rXt/v5y/eG7M+i0uLF42A2ASDANI6jc8DxnaQxaXFqPNeY8V2qFjTnc5Cme+X+vF+RkAEEASQJP0DVTPxBdLcKUAAAAAASUVORK5CYII=", "otter_plain": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALgAAAB4CAYAAABB2zhzAAADqElEQVR42u3dPYgcVQAH8NuwaAKJptgjH5zEiIm5wkIwKQIRGxNtDoXgR4LRRhGLgHiFCCFfoBYHIZUQuxBSWNn5caUIQT2uULnocdkkB3cna/CIWHhNrN8UMzxmdz5/v+4xs7czO38e/33MzY6NAQAAAAAAAAAAAAAAAACQpeMjaJdn9+16kLb958XVzihfX7RNLjlNJuAIOOjg1KJzT797InX/mSvXU7fHvr7sTm4GR0UBAQcdnKI796tHJks9ni+/Xyi1k5vBUVFAwKGCuj6CdumvrUft//XN/4LxSwceTt1/787tZnAQcBBwSGcdvOFi70X56PNvgvEfN+eD8f4DzwTj95/fEXU8Ra+Lm8FRUUDAoYIatw6e9T+DTZPssFn3otxdmI/6+8nOXfb1i+3sZnBUFBBw0MFH36mz1nmbZubK9VK/c7xz9pPU7VMvnwrGW7ZuS1zfseD4n358POstH8R0cjM4KgoIOFRQ6feiZHXstnXqLLHr2MPu2Bv/3kvd//jJD4Lxk73NUe/3y+1B6nbr4CDgCDg0QOHr4LH3J+vI5crq3EnJzv3Z5U+D8Y2534LxxQuXgrF1cFBRQMBpgaGvg2eta7/92ivBuPfolmD87XezwfjY0Rd04hGKfU7Ki2+8nrr9q6vXch2PdXAQcBBwdPD4jn14ciL19YePPJfakReW/wrGk4/1XKUCJZ9bUrRhPyfFDI6KAgIOdejgeTt2lonettTtOni1O3nVfoveDI6KAgIONdRNdu68Hbtusp7rUTdfnP+41Z3bDI6KAgIONdA5PXUw17PtVu79k+sADj21OxgPex286I4d+z+MRTs3fSYY/7S42qjObQZHRQEBhxro5u3Qef34+8pIO3nVO3HRmt65zeCoKCDgUAOduv2uZPJ3H2O9Nf1hrS9Y8tl+WZLP/mt65zaDo6KAgEMdOnjdDjj2O8N7bx4PxnM3foh6v6xn8RVt0F8Oxku/zgXj2fl+qzu3GRwBBwEHHbz4Tp7s3MmOmiXZYcs27POxDg4CDgIOpes27YRiO2qWojtr8jvFsM/HDA4CDgIOAg4CDgIOAk7LdNv+ATTtXo3lwX2pNoMj4CDgoIMXamn171afz6219UZ9pzCDg4Aj4KCDD9+eHXv25vsLGxU7nryKPZ87f97pNzngZnBUFBBwqKCRr5EW3WnHH9m4FbP/4P5DT1T5AlXtfOrW2c3gqCgg4NDGDl63Dt80TV/nNoOjooCAQw39D0LkHOnAzg13AAAAAElFTkSuQmCC", "otter_hat": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALgAAAB4CAYAAABB2zhzAAAD20lEQVR42u3dT4gVdQAH8N14VIqaxBP/oOhGlnsICcqDYHTxT5elQCoTtUshCkK4hwgiK1APgngK8ibRwZM3NY8iSbrsoWJNcVddcI1Vko0O7WU9/+YwwzDz5s385vO5/ZjZ92befPnxfT9m5w0MAAAAAABAvAZ9BO321sbVC2W+3s07M7XK1HMuMTETcAQcdHAa2bnnBrulvv6yhce16uRmcFQUEHAQcBBwEHAQcATcR4CAg4CDgEOlOj6CuCXvPRn9/JNg+9CaX0t9v8PHHpvBQcBBwCGd+8Ej79wfbhsOtp+5PFnp8axe/H8wrvr+cDM4KgoIONSQdfCWGdn8cq79L94KO/R7m15I3X9o1fJgfP7qhBkcBBwEHELWwSOXdS9K0pc/XArGt2+NB+PXNr0ZjA+9uzLX8SQ7ea/Xxc3gqCgg4FBD0a2Dl/2867pLdtise1EeTIznev1k5+739cvb2c3gqCgg4KCD975TZ63zxubUjz/39TvHZ98cT90+8v7+YLxoydLE9R0Ijv+NDSuy3nIhTyc3g6OigIBDDfX9XpSsjt22Tp0l7zp22R17/r8nqfvv3vtFMH61+2Ku9/v93mzqduvgIOAIOESg8nXwvPcn68j9ldW5k5Kd++SZE8H4+tifwfj7704HY+vgoKKAgNMCpa+DZ61rf/rRB8G4+9KiYHz5lyvBeOeO7TpxD009eppr/117Pk7dfuHcT4WOxzo4CDgIODp4/o69dXht6t9v3fZOakeemA5/42V4XddVqlC/nyVY9nNSzOCoKCDg0IQOXrRjZ1nbXZq6XQevdyev+jd2zOAg4Ag4RKiT7NxFO3bTZD3Xo2nOfvtVqzu3GRwVBQQcGmDwyMjbhZ5t9/DJv4UOYMvra4Jx2evgVXfsvP/DWLVjo18H4xt3ZqLq3GZwVBQQcGiATtEOXdRvfz3saSeveyeuWuyd2wyOigICDg0w2LTflUz+7mNeB0aPNvqCJZ/tlyX57L/YO7cZHBUFBBya0MGbdsB5vzMc3Lc7GI9dv5br/bKexVe12anpYHz3j7FgfGV8qtWd2wyOgIOAgw5efSdPdu5kR82S7LD9Vvb5WAcHAQcBh77rxHZCeTtqlqo7a/I7RdnnYwYHAQcBBwEHAQcBBwGnZTpt/wBiu1djenZOqs3gCDgIOOjglbo780+rz2fy0dOovlOYwUHAEXDQwcu3fuX6oWKvMF+z4ymq2vO5//f9qZgDbgZHRQEBhxrq+Rpp1Z12xbL5yTz7z849/0qdL1Ddzqdpnd0MjooCAg5t7OBN6/CxiX2d2wyOigICDg30DEPjHJ0kisgHAAAAAElFTkSuQmCC"};
+
+  /* ---------- companion feeding (mirrors the app: feedsForLevel, 6 snacks/day, wardrobe) ---------- */
+  (function(){
+    var lab = $("#compLab"); if(!lab) return;
+    var FEEDS = [0,4,10,18,28,42], MAX_DAY = 6, WARD = {2:"Red cap",3:"Bow",4:"Beanie",5:"Crown"};
+    var st = { c:"capybara", n:"Biscuit", treats:5, fed:0, today:0 };
+    var img = $("#critterImg"), critter = $("#critter"), toast = $("#compToast");
+    $$("#compPick button").forEach(function(b){ $("img",b).src = SPRITES[b.dataset.c+"_plain"]; });
+    function level(){ var l=1; FEEDS.forEach(function(req,i){ if(st.fed>=req) l=i+1; }); return Math.min(l,FEEDS.length); }
+    function say(t){ toast.textContent=t; toast.classList.add("on"); setTimeout(function(){ toast.classList.remove("on"); },900); }
+    function draw(){
+      var lv = level(), max = lv>=FEEDS.length;
+      img.src = SPRITES[st.c + (lv>=2 ? "_hat":"_plain")];
+      $("#compName").textContent = st.n + " · " + st.c.charAt(0).toUpperCase()+st.c.slice(1);
+      $("#compLvl").textContent = "Lv " + lv;
+      $("#treatBal").textContent = st.treats;
+      var lo = FEEDS[lv-1], hi = max ? lo : FEEDS[lv];
+      $("#lvlFill").style.width = (max ? 100 : (st.fed-lo)/(hi-lo)*100) + "%";
+      $("#lvlMeta").textContent = max ? "Max level" : (hi-st.fed) + " snack" + (hi-st.fed===1?"":"s") + " to level " + (lv+1);
+      $("#feedsToday").textContent = st.today + " / " + MAX_DAY + " snacks today";
+      $("#feedBtn").textContent = "Feed " + st.n + " · 1 Treat";
+      $("#feedBtn").disabled = st.treats<1 || st.today>=MAX_DAY;
+      $("#feedBtn").style.opacity = $("#feedBtn").disabled ? .5 : 1;
+      $$("#wardrobe span[data-lv]").forEach(function(s){ s.classList.toggle("got", lv >= +s.dataset.lv); });
+    }
+    $("#feedBtn").addEventListener("click", function(){
+      if(st.treats<1){ say("You need 1 Treat."); return; }
+      if(st.today>=MAX_DAY){ say("Full for today!"); return; }
+      var before = level();
+      st.treats--; st.fed++; st.today++;
+      var s = document.createElement("span"); s.className="snack"; s.textContent=["🍪","🍓","🥕","🍎"][st.fed%4];
+      critter.parentNode.appendChild(s); setTimeout(function(){ s.remove(); }, 600);
+      setTimeout(function(){
+        critter.classList.remove("happy"); void critter.offsetWidth; critter.classList.add("happy");
+        var after = level();
+        say(after>before ? "Level " + after + "! " + (WARD[after] ? WARD[after] + " unlocked" : "") : "Yum!");
+        draw();
+      }, 420);
+    });
+    $("#earnBtn").addEventListener("click", function(){ st.treats += 2; say("+2 Treats — dose logged on time"); draw(); });
+    $("#compPick").addEventListener("click", function(e){
+      var b = e.target.closest("button"); if(!b) return;
+      $$("#compPick button").forEach(function(x){ x.setAttribute("aria-pressed", x===b?"true":"false"); });
+      st.c = b.dataset.c; st.n = b.dataset.n; draw();
+    });
+    draw();
+  })();
+
+  /* ---------- food & supplement interactions ---------- */
+  (function(){
+    var lab = $("#ixLab"); if(!lab) return;
+    var out = $("#ixOut"), on = {};
+    var RULES = {
+      sjw:[["serious","St John's Wort × Sertraline","Combining a serotonergic herbal with an SSRI raises the risk of serotonin syndrome.","NLM · DailyMed label"]],
+      mag:[["note","Magnesium · timing","No flagged interaction with your saved medications. Some minerals are best taken a few hours apart from other tablets.","NIH Office of Dietary Supplements"]],
+      vitd:[["note","Vitamin D3","No interaction found between what you've recorded and your saved medications.","NIH Office of Dietary Supplements"]],
+      fish:[["note","Fish oil","No flagged interaction with your saved medications.","NIH Office of Dietary Supplements"]],
+      gh:[["caution","Growth-hormone-type peptide × Metformin","Growth-hormone-type compounds can raise blood glucose and work against diabetes medicines.","Pillcounted safety note · peptides-glucose"]],
+      bpc:[["caution","BPC-157 · research peptide","Not an approved medicine, so no FDA label exists to check against. Logged as a research peptide; talk to your prescriber.","Pillcounted safety note · peptides-unknown"]],
+      glp:[["caution","GLP-1 (compounded) × Metformin","Both lower blood glucose; watch for low readings and stomach upset. Compounded products carry FDA warnings.","FDA safety communication"]],
+      ibu:[["caution","Ibuprofen × Lisinopril","NSAIDs can blunt blood-pressure control and strain the kidneys when combined with an ACE inhibitor.","NLM · DailyMed label"]],
+      grape:[["caution","Grapefruit × Atorvastatin","Grapefruit can raise statin levels in the blood. Large amounts are the concern.","FDA consumer update"]],
+      alc:[["caution","Alcohol × Sertraline","Alcohol can add to drowsiness and worsen mood symptoms with an SSRI.","NLM · DailyMed label"],["note","Alcohol × Metformin","Heavy drinking raises the risk of lactic acidosis with metformin.","NLM · DailyMed label"]],
+      nic:[["note","Nicotine pouch","No flagged interaction with your saved medications. Nicotine can raise blood pressure — worth mentioning to your prescriber.","Pillcounted safety note"]]
+    };
+    function render(){
+      var keys = Object.keys(on).filter(function(k){ return on[k]; });
+      if(!keys.length){ out.innerHTML = '<div class="ix-empty">Nothing added yet — tap anything on the left.</div>'; return; }
+      var cards = [];
+      keys.forEach(function(k){ (RULES[k]||[]).forEach(function(r){ cards.push(r); }); });
+      var order = {serious:0,caution:1,note:2};
+      cards.sort(function(a,b){ return order[a[0]]-order[b[0]]; });
+      out.innerHTML = cards.map(function(r){
+        var tag = r[0]==="serious" ? "Serious interaction" : r[0]==="caution" ? "Interaction" : "No interaction found";
+        return '<div class="ix-card '+r[0]+'"><span class="sev"></span><div><b>'+r[1]+'</b><p>'+r[2]+'</p><small>'+tag+' · '+r[3]+'</small></div></div>';
+      }).join("");
+    }
+    lab.addEventListener("click", function(e){
+      var b = e.target.closest(".ix-chips button"); if(!b) return;
+      var v = b.getAttribute("aria-pressed")!=="true";
+      b.setAttribute("aria-pressed", v?"true":"false"); on[b.dataset.k]=v; render();
+    });
+  })();
+
+  /* ---------- real app screenshots, if present in img/app/ ---------- */
+  $$(".d-scene").forEach(function(sc){
+    var im = $(".shotslot", sc); if(!im) return;
+    im.addEventListener("load", function(){ sc.classList.add("real"); });
+    im.src = im.dataset.src;
+  });
+})();
+</script>
+<script>
+(function(){
+  var lab=document.getElementById("jrLab"); if(!lab) return;
+  var $=function(s,r){return (r||document).querySelector(s)}, $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+  var N=1284, C={nausea:[412,"Nausea"],sleep:[389,"Trouble sleeping"],head:[276,"Headache"],dizzy:[151,"Dizziness"],appetite:[233,"Less appetite"],better:[871,"Feeling better by week 4"]};
+  var mine={nausea:true,sleep:true,head:true}, sel={}, mood=3, MOODS={1:"Rough",2:"Meh",3:"Okay",4:"Good",5:"Great"};
+  function draw(){
+    var rows=$("#cmRows"); rows.innerHTML="";
+    Object.keys(C).sort(function(a,b){return C[b][0]-C[a][0]}).forEach(function(k){
+      var pc=Math.round(C[k][0]/N*100), you=mine[k]||sel[k];
+      var d=document.createElement("div"); d.className="cm-row"+(you?" you":"");
+      d.innerHTML='<div><div class="lb">'+C[k][1]+'<span>'+(you?"you too":"")+'</span></div><div class="cm-bar"><i data-w="'+pc+'"></i></div></div><div class="pc">'+pc+'%</div>';
+      rows.appendChild(d);
+    });
+    setTimeout(function(){ $$("#cmRows .cm-bar i").forEach(function(i){ i.style.width=i.dataset.w+"%"; }); },30);
+    $("#cmN").textContent=N.toLocaleString("en-US")+" people · last 90 days";
+    var picked=Object.keys(sel).filter(function(k){return sel[k]&&k!=="better"});
+    var rare=picked.filter(function(k){return C[k][0]/N<0.15});
+    var f=$("#cmFlag");
+    if(rare.length){ f.textContent="Fewer than 15% report "+rare.map(function(k){return C[k][1].toLowerCase()}).join(", ")+" — less common on this medication. Worth mentioning to your pharmacist or prescriber."; f.classList.add("on"); }
+    else if(picked.length){ f.textContent="What you've picked is commonly reported on this medication and often eases in the first weeks. Keep logging so you can show the trend at your next visit."; f.classList.add("on"); }
+    else f.classList.remove("on");
+  }
+  $("#jrSym").addEventListener("click",function(e){ var b=e.target.closest("button"); if(!b) return; var v=b.getAttribute("aria-pressed")!=="true"; b.setAttribute("aria-pressed",v?"true":"false"); sel[b.dataset.k]=v; draw(); });
+  $("#jrMood").addEventListener("click",function(e){ var b=e.target.closest("button"); if(!b) return; $$("#jrMood button").forEach(function(x){x.setAttribute("aria-pressed",x===b?"true":"false")}); mood=+b.dataset.m; });
+  $("#jrSave").addEventListener("click",function(){
+    var picked=Object.keys(sel).filter(function(k){return sel[k]});
+    var d=document.createElement("div"); d.className="jr-entry";
+    d.innerHTML='<span class="t">Today</span><b>'+MOODS[mood]+(picked.length?" · "+picked.map(function(k){return C[k][1].replace(" by week 4","")}).join(", "):"")+'</b>'+($("#jrNote").value.trim()||"No note.");
+    $("#jrLog").prepend(d);
+    if($("#jrShare").checked){ N++; picked.forEach(function(k){ C[k][0]++; mine[k]=true; }); }
+    $("#jrNote").value=""; $$("#jrSym button").forEach(function(b){b.setAttribute("aria-pressed","false")}); sel={}; draw();
+  });
+  draw();
+})();
+</script></body>
+</html>
